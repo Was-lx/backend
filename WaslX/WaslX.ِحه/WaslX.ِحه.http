@@ -1,0 +1,6 @@
+@WaslX._ِحه_HostAddress = http://localhost:5264
+
+GET {{WaslX._ِحه_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

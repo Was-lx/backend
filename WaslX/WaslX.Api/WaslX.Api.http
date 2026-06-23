@@ -1,0 +1,6 @@
+@WaslX.Api_HostAddress = http://localhost:5287
+
+GET {{WaslX.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

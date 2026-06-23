@@ -1,1 +1,7 @@
-<Solution />
+<Solution>
+  <Project Path="WaslX.Api/WaslX.Api.csproj" Id="794ff59b-4d0d-4058-95ad-a44b9361cf17" />
+  <Project Path="WaslX.Application/WaslX.Application.csproj" Id="b7dbdf80-f901-4093-84c9-f3fe31744d9a" />
+  <Project Path="WaslX.Domain/WaslX.Domain.csproj" Id="52ea0371-9608-4b11-912c-69828628ccbd" />
+  <Project Path="WaslX.Infrastructure/WaslX.Infrastructure.csproj" Id="0f605ba6-3428-4c0c-9ffa-a9ef122c63a7" />
+  <Project Path="WaslX.Persistance/WaslX.Persistance.csproj" Id="2e0abbd8-a2ed-460f-bc72-67f97e93bd90" />
+</Solution>
