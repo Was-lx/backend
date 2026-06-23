@@ -1,0 +1,30 @@
+﻿using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using WaslX.Application.Abstractions.Authentication;
+using WaslX.Application.Abstractions.Identity;
+using WaslX.Infrastructure.Authentication;
+using WaslX.Infrastructure.Email;
+using WaslX.Infrastructure.Identity;
+using WaslX.Infrastructure.Settings;
+
+namespace WaslX.Infrastructure
+{
+    public static class DependencyInjection
+    {
+        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+            services.Configure<MailSettings>(configuration.GetSection(MailSettings.SectionName));
+            services.Configure<HangfireSettings>(configuration.GetSection(HangfireSettings.SectionName));
+            services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
+
+            services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+            services.AddScoped<IAuthService, AuthSerive>();
+
+            services.AddScoped<IEmailSender, EmailService>();
+
+            return services;
+        }
+    }
+}
