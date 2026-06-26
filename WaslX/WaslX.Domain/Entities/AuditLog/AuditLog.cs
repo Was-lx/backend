@@ -1,0 +1,20 @@
+﻿using WaslX.Domain.SharedEnums;
+using System;
+using System.Collections.Generic;
+using WaslX.Domain.Common;
+namespace WaslX.Domain.Entities
+{
+
+    public class AuditLog : BaseEntity
+    {
+        public Guid TenantId { get; set; }
+        public Guid? ActorUserId { get; set; }
+        public AuditAction Action { get; set; }
+        public string EntityType { get; set; } = string.Empty;
+        public Guid EntityId { get; set; }
+        public string Details { get; set; } = string.Empty;
+
+        public Tenant Tenant { get; set; } = null!;
+        public User? ActorUser { get; set; }
+    }
+}

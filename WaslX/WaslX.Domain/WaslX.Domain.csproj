@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -9,7 +9,7 @@
   <ItemGroup>
     <Folder Include="Constants\" />
     <Folder Include="Entities\" />
-    <Folder Include="Enums\" />
+    <Folder Include="SharedEnums\" />
   </ItemGroup>
 
 </Project>
