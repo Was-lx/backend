@@ -1,18 +1,16 @@
-﻿using WaslX.Domain.SharedEnums;
+using WaslX.Domain.SharedEnums;
 using System;
 using System.Collections.Generic;
+using WaslX.Domain.Entities.Base;
 using WaslX.Domain.Common;
+
 namespace WaslX.Domain.Entities
 {
-
-    public class User : BaseEntity
+    public class User : Account
     {
-        public Guid TenantId { get; set; }
-        public Guid RoleId { get; set; }
+        public int TenantId { get; set; }
+        public int RoleId { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
-        public UserStatus Status { get; set; }
 
         public Tenant Tenant { get; set; } = null!;
         public Role Role { get; set; } = null!;
@@ -25,5 +23,6 @@ namespace WaslX.Domain.Entities
         public ICollection<Assignment> Assignments { get; set; } = new HashSet<Assignment>();
         public ICollection<RoutingDecision> RoutingDecisions { get; set; } = new HashSet<RoutingDecision>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new HashSet<AuditLog>();
+        public ICollection<Campaign> CreatedCampaigns { get; set; } = new HashSet<Campaign>();
     }
 }

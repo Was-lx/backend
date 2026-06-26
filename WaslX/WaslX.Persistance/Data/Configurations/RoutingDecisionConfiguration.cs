@@ -17,6 +17,7 @@ namespace WaslX.Persistance.Configurations
             builder.Property(x => x.Language).HasConversion<string>().HasMaxLength(50);
             builder.Property(x => x.Sentiment).HasConversion<string>().HasMaxLength(50);
             builder.Property(x => x.Priority).HasConversion<string>().HasMaxLength(50);
+            builder.Property(x => x.AutoReply).HasMaxLength(4000);
             builder.Property(x => x.Mode).HasConversion<string>().HasMaxLength(50);
             builder.HasOne(x => x.Conversation).WithMany(x => x.RoutingDecisions).HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Cascade);
             builder.HasOne(x => x.RecommendedUser).WithMany(x => x.RoutingDecisions).HasForeignKey(x => x.RecommendedUserId).OnDelete(DeleteBehavior.SetNull);

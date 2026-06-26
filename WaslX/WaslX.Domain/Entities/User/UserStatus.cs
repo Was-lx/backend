@@ -1,4 +1,4 @@
-﻿namespace WaslX.Domain.SharedEnums
+namespace WaslX.Domain.SharedEnums
 {
 
     public enum UserStatus

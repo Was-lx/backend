@@ -1,4 +1,4 @@
-﻿using WaslX.Domain.SharedEnums;
+using WaslX.Domain.SharedEnums;
 using System;
 using System.Collections.Generic;
 using WaslX.Domain.Common;
@@ -7,8 +7,8 @@ namespace WaslX.Domain.Entities
 
     public class Message : BaseEntity
     {
-        public Guid ConversationId { get; set; }
-        public Guid? SenderUserId { get; set; }
+        public int ConversationId { get; set; }
+        public int? SenderUserId { get; set; }
         public SenderType SenderType { get; set; }
         public string Content { get; set; } = string.Empty;
         public MessageType MessageType { get; set; }
