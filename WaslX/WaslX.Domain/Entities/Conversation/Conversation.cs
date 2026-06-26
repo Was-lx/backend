@@ -1,4 +1,4 @@
-﻿using WaslX.Domain.SharedEnums;
+using WaslX.Domain.SharedEnums;
 using System;
 using System.Collections.Generic;
 using WaslX.Domain.Common;
@@ -7,12 +7,12 @@ namespace WaslX.Domain.Entities
 
     public class Conversation : BaseEntity
     {
-        public Guid TenantId { get; set; }
-        public Guid WhatsAppAccountId { get; set; }
-        public Guid CustomerId { get; set; }
-        public Guid? AssignedUserId { get; set; }
-        public Guid? GroupId { get; set; }
-        public Guid? CurrentStageId { get; set; }
+        public int TenantId { get; set; }
+        public int WhatsAppAccountId { get; set; }
+        public int CustomerId { get; set; }
+        public int? AssignedUserId { get; set; }
+        public int? GroupId { get; set; }
+        public int? CurrentStageId { get; set; }
         public ConversationStatus Status { get; set; }
         public ConversationPriority Priority { get; set; }
         public DateTime? LastMessageAt { get; set; }

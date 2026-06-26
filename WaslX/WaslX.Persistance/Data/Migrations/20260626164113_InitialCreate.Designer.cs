@@ -12,7 +12,7 @@ using WaslX.Persistance.Data;
 namespace WaslX.Persistance.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260626120610_InitialCreate")]
+    [Migration("20260626164113_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -133,10 +133,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.AgentPerformance", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("performance_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ActiveChats")
                         .HasColumnType("int");
@@ -161,8 +163,8 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -173,19 +175,21 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Assignment", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("assignment_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("AssignedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("AssignedToUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("AssignedToUserId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -214,18 +218,20 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.AuditLog", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("audit_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid?>("ActorUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -234,16 +240,16 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("EntityId")
+                        .HasColumnType("int");
 
                     b.Property<string>("EntityType")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -257,27 +263,177 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("audit_logs", (string)null);
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.Conversation", b =>
+            modelBuilder.Entity("WaslX.Domain.Entities.Campaign", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("conversation_id");
+                        .HasColumnType("int")
+                        .HasColumnName("campaign_id");
 
-                    b.Property<Guid?>("AssignedUserId")
-                        .HasColumnType("uniqueidentifier");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AudienceFilter")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("CurrentStageId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("DeliveredCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
-                    b.Property<Guid?>("GroupId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("FailedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("MessageBody")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("ReadCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("ScheduledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SentCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TemplateName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("WaAccountId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("WaAccountId");
+
+                    b.ToTable("campaigns", (string)null);
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.CampaignRecipient", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("recipient_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CampaignId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("campaign_recipients", (string)null);
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.CampaignTag", b =>
+                {
+                    b.Property<int>("CampaignId")
+                        .HasColumnType("int")
+                        .HasColumnName("campaign_id");
+
+                    b.Property<int>("TagId")
+                        .HasColumnType("int")
+                        .HasColumnName("tag_id");
+
+                    b.HasKey("CampaignId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("campaign_tags", (string)null);
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.Conversation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("conversation_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignedUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CurrentStageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("GroupId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("LastMessageAt")
                         .HasColumnType("datetime2");
@@ -292,14 +448,14 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("WhatsAppAccountId")
-                        .HasColumnType("uniqueidentifier")
+                    b.Property<int>("WhatsAppAccountId")
+                        .HasColumnType("int")
                         .HasColumnName("wa_account_id");
 
                     b.HasKey("Id");
@@ -321,25 +477,27 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.ConversationStageHistory", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("history_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("ChangedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("ChangedByUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("ChangedByUserId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("StageId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("StageId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -357,11 +515,11 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.ConversationTag", b =>
                 {
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("TagId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TagId")
+                        .HasColumnType("int");
 
                     b.HasKey("ConversationId", "TagId");
 
@@ -372,10 +530,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Customer", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("customer_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -390,8 +550,8 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Tier")
                         .IsRequired()
@@ -413,10 +573,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.FAQ", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("faq_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Answer")
                         .IsRequired()
@@ -437,8 +599,8 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -452,10 +614,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Group", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("group_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -470,8 +634,8 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -485,17 +649,19 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.InternalNote", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("note_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -503,8 +669,8 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -517,10 +683,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Invoice", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("invoice_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
                         .HasPrecision(18, 2)
@@ -543,8 +711,8 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -558,31 +726,33 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeVector", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("vector_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Embedding")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("SourceId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("SourceId")
+                        .HasColumnType("int");
 
                     b.Property<string>("SourceType")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<string>("TextContent")
                         .IsRequired()
@@ -602,17 +772,19 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Message", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("message_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -627,8 +799,8 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid?>("SenderUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("SenderUserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -658,10 +830,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Permission", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("permission_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -689,10 +863,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.PlatformUser", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("platform_user_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -730,10 +906,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Role", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("role_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -758,11 +936,11 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.RolePermission", b =>
                 {
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("PermissionId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
 
                     b.HasKey("RoleId", "PermissionId");
 
@@ -773,16 +951,20 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.RoutingDecision", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("decision_id");
 
-                    b.Property<bool>("AutoReply")
-                        .HasColumnType("bit");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("AutoReply")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -802,8 +984,8 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid?>("RecommendedUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("RecommendedUserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Sentiment")
                         .IsRequired()
@@ -832,16 +1014,18 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Stage", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("stage_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -863,10 +1047,15 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.SubscriptionPlan", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("plan_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AiQuota")
+                        .HasColumnType("int");
 
                     b.Property<string>("BillingCycle")
                         .IsRequired()
@@ -882,10 +1071,7 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Property<int>("MaxNumbers")
                         .HasColumnType("int");
 
-                    b.Property<int>("MonthlyAiQuota")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MonthlyMsgQuota")
+                    b.Property<int>("MsgQuota")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
@@ -907,10 +1093,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Tag", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("tag_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Color")
                         .IsRequired()
@@ -930,8 +1118,8 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -945,10 +1133,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Tenant", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("tenant_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("BillingStatus")
                         .IsRequired()
@@ -963,11 +1153,11 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<Guid>("PlanId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("PlanId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("PlatformUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("PlatformUserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -988,10 +1178,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.User", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("user_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -1011,16 +1203,16 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1037,11 +1229,11 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.UserGroup", b =>
                 {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
 
                     b.HasKey("UserId", "GroupId");
 
@@ -1052,10 +1244,12 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.WhatsAppAccount", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("int")
                         .HasColumnName("wa_account_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AccessToken")
                         .IsRequired()
@@ -1078,8 +1272,8 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1296,6 +1490,71 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("ActorUser");
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.Campaign", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.User", "Creator")
+                        .WithMany("CreatedCampaigns")
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("Campaigns")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WaslX.Domain.Entities.WhatsAppAccount", "WhatsAppAccount")
+                        .WithMany("Campaigns")
+                        .HasForeignKey("WaAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Creator");
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("WhatsAppAccount");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.CampaignRecipient", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Campaign", "Campaign")
+                        .WithMany("Recipients")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WaslX.Domain.Entities.Customer", "Customer")
+                        .WithMany("CampaignRecipients")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.CampaignTag", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Campaign", "Campaign")
+                        .WithMany("CampaignTags")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WaslX.Domain.Entities.Tag", "Tag")
+                        .WithMany("CampaignTags")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+
+                    b.Navigation("Tag");
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.Conversation", b =>
@@ -1655,6 +1914,13 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("RefreshTokens");
                 });
 
+            modelBuilder.Entity("WaslX.Domain.Entities.Campaign", b =>
+                {
+                    b.Navigation("CampaignTags");
+
+                    b.Navigation("Recipients");
+                });
+
             modelBuilder.Entity("WaslX.Domain.Entities.Conversation", b =>
                 {
                     b.Navigation("Assignments");
@@ -1672,6 +1938,8 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Customer", b =>
                 {
+                    b.Navigation("CampaignRecipients");
+
                     b.Navigation("Conversations");
 
                     b.Navigation("KnowledgeVectors");
@@ -1717,12 +1985,16 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.Tag", b =>
                 {
+                    b.Navigation("CampaignTags");
+
                     b.Navigation("ConversationTags");
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.Tenant", b =>
                 {
                     b.Navigation("AuditLogs");
+
+                    b.Navigation("Campaigns");
 
                     b.Navigation("Conversations");
 
@@ -1755,6 +2027,8 @@ namespace WaslX.Persistance.Data.Migrations
 
                     b.Navigation("ConversationStageHistories");
 
+                    b.Navigation("CreatedCampaigns");
+
                     b.Navigation("InternalNotes");
 
                     b.Navigation("RoutingDecisions");
@@ -1766,6 +2040,8 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.WhatsAppAccount", b =>
                 {
+                    b.Navigation("Campaigns");
+
                     b.Navigation("Conversations");
                 });
 #pragma warning restore 612, 618

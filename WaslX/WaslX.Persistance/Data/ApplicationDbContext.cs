@@ -37,6 +37,9 @@ namespace WaslX.Persistance.Data
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
+        public DbSet<Campaign> Campaigns { get; set; }
+        public DbSet<CampaignRecipient> CampaignRecipients { get; set; }
+        public DbSet<CampaignTag> CampaignTags { get; set; }
         public new DbSet<User> Users { get; set; }
         public DbSet<UserGroup> UserGroups { get; set; }
         public DbSet<WhatsAppAccount> WhatsAppAccounts { get; set; }
@@ -44,3 +47,4 @@ namespace WaslX.Persistance.Data
         
     }
 }
+

@@ -1,4 +1,4 @@
-﻿using WaslX.Domain.SharedEnums;
+using WaslX.Domain.SharedEnums;
 using System;
 using System.Collections.Generic;
 using WaslX.Domain.Common;

@@ -1,4 +1,4 @@
-﻿using WaslX.Domain.SharedEnums;
+using WaslX.Domain.SharedEnums;
 using System;
 using System.Collections.Generic;
 using WaslX.Domain.Common;
@@ -7,8 +7,8 @@ namespace WaslX.Domain.Entities
 
     public class Tenant : BaseEntity
     {
-        public Guid PlanId { get; set; }
-        public Guid PlatformUserId { get; set; }
+        public int PlanId { get; set; }
+        public int PlatformUserId { get; set; }
         public string Name { get; set; } = string.Empty;
         public TenantStatus Status { get; set; }
         public BillingStatus BillingStatus { get; set; }
@@ -25,5 +25,6 @@ namespace WaslX.Domain.Entities
         public ICollection<User> Users { get; set; } = new HashSet<User>();
         public ICollection<Conversation> Conversations { get; set; } = new HashSet<Conversation>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new HashSet<AuditLog>();
+        public ICollection<Campaign> Campaigns { get; set; } = new HashSet<Campaign>();
     }
 }

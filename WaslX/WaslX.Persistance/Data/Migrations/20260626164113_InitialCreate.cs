@@ -59,7 +59,8 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "permissions",
                 columns: table => new
                 {
-                    permission_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    permission_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Code = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -74,13 +75,14 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "platform_users",
                 columns: table => new
                 {
-                    platform_user_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    platform_user_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Email = table.Column<string>(type: "nvarchar(320)", maxLength: 320, nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -91,7 +93,8 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "roles",
                 columns: table => new
                 {
-                    role_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    role_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -106,12 +109,13 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "subscription_plans",
                 columns: table => new
                 {
-                    plan_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    plan_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     MaxAgents = table.Column<int>(type: "int", nullable: false),
                     MaxNumbers = table.Column<int>(type: "int", nullable: false),
-                    MonthlyMsgQuota = table.Column<int>(type: "int", nullable: false),
-                    MonthlyAiQuota = table.Column<int>(type: "int", nullable: false),
+                    MsgQuota = table.Column<int>(type: "int", nullable: false),
+                    AiQuota = table.Column<int>(type: "int", nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     BillingCycle = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -255,8 +259,8 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "role_permissions",
                 columns: table => new
                 {
-                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PermissionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    RoleId = table.Column<int>(type: "int", nullable: false),
+                    PermissionId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -279,9 +283,10 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "tenants",
                 columns: table => new
                 {
-                    tenant_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PlanId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PlatformUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    tenant_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PlanId = table.Column<int>(type: "int", nullable: false),
+                    PlatformUserId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     BillingStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
@@ -309,8 +314,9 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "customers",
                 columns: table => new
                 {
-                    customer_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    customer_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
                     PhoneNumber = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     VipFlag = table.Column<bool>(type: "bit", nullable: false),
@@ -333,8 +339,9 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "faqs",
                 columns: table => new
                 {
-                    faq_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    faq_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
                     Question = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Answer = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Language = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
@@ -357,8 +364,9 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "groups",
                 columns: table => new
                 {
-                    group_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    group_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -379,8 +387,9 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "invoices",
                 columns: table => new
                 {
-                    invoice_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    invoice_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     IssuedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -404,8 +413,9 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "tags",
                 columns: table => new
                 {
-                    tag_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    tag_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Color = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
@@ -427,15 +437,16 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "users",
                 columns: table => new
                 {
-                    user_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    user_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
+                    RoleId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Email = table.Column<string>(type: "nvarchar(320)", maxLength: 320, nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -458,8 +469,9 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "whatsapp_accounts",
                 columns: table => new
                 {
-                    wa_account_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    wa_account_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
                     PhoneNumber = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
                     AccessToken = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
@@ -482,11 +494,12 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "knowledge_vectors",
                 columns: table => new
                 {
-                    vector_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CustomerId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    vector_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
+                    CustomerId = table.Column<int>(type: "int", nullable: true),
                     SourceType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    SourceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SourceId = table.Column<int>(type: "int", nullable: false),
                     TextContent = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Embedding = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -513,8 +526,9 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "stages",
                 columns: table => new
                 {
-                    stage_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    stage_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    GroupId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     SequenceOrder = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -535,8 +549,9 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "agent_performances",
                 columns: table => new
                 {
-                    performance_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    performance_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
                     ChatsHandled = table.Column<int>(type: "int", nullable: false),
                     AvgResponseTime = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     ResolutionRate = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
@@ -560,12 +575,13 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "audit_logs",
                 columns: table => new
                 {
-                    audit_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ActorUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    audit_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
+                    ActorUserId = table.Column<int>(type: "int", nullable: true),
                     Action = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     EntityType = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    EntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EntityId = table.Column<int>(type: "int", nullable: false),
                     Details = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
@@ -591,8 +607,8 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "user_groups",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    GroupId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -612,16 +628,62 @@ namespace WaslX.Persistance.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "campaigns",
+                columns: table => new
+                {
+                    campaign_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
+                    WaAccountId = table.Column<int>(type: "int", nullable: false),
+                    CreatedBy = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    TemplateName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    MessageBody = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
+                    AudienceFilter = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    SentCount = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    DeliveredCount = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    ReadCount = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    FailedCount = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    ScheduledAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_campaigns", x => x.campaign_id);
+                    table.ForeignKey(
+                        name: "FK_campaigns_tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "tenants",
+                        principalColumn: "tenant_id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_campaigns_users_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "users",
+                        principalColumn: "user_id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_campaigns_whatsapp_accounts_WaAccountId",
+                        column: x => x.WaAccountId,
+                        principalTable: "whatsapp_accounts",
+                        principalColumn: "wa_account_id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "conversations",
                 columns: table => new
                 {
-                    conversation_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    wa_account_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CustomerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    AssignedUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    GroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CurrentStageId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    conversation_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TenantId = table.Column<int>(type: "int", nullable: false),
+                    wa_account_id = table.Column<int>(type: "int", nullable: false),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    AssignedUserId = table.Column<int>(type: "int", nullable: true),
+                    GroupId = table.Column<int>(type: "int", nullable: true),
+                    CurrentStageId = table.Column<int>(type: "int", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Priority = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     LastMessageAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -670,12 +732,70 @@ namespace WaslX.Persistance.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "campaign_recipients",
+                columns: table => new
+                {
+                    recipient_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CampaignId = table.Column<int>(type: "int", nullable: false),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Error = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeliveredAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReadAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_campaign_recipients", x => x.recipient_id);
+                    table.ForeignKey(
+                        name: "FK_campaign_recipients_campaigns_CampaignId",
+                        column: x => x.CampaignId,
+                        principalTable: "campaigns",
+                        principalColumn: "campaign_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_campaign_recipients_customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "customers",
+                        principalColumn: "customer_id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "campaign_tags",
+                columns: table => new
+                {
+                    campaign_id = table.Column<int>(type: "int", nullable: false),
+                    tag_id = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_campaign_tags", x => new { x.campaign_id, x.tag_id });
+                    table.ForeignKey(
+                        name: "FK_campaign_tags_campaigns_campaign_id",
+                        column: x => x.campaign_id,
+                        principalTable: "campaigns",
+                        principalColumn: "campaign_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_campaign_tags_tags_tag_id",
+                        column: x => x.tag_id,
+                        principalTable: "tags",
+                        principalColumn: "tag_id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "assignments",
                 columns: table => new
                 {
-                    assignment_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ConversationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    AssignedToUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    assignment_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ConversationId = table.Column<int>(type: "int", nullable: false),
+                    AssignedToUserId = table.Column<int>(type: "int", nullable: false),
                     Method = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     AssignedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -703,10 +823,11 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "conversation_stage_histories",
                 columns: table => new
                 {
-                    history_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ConversationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    StageId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ChangedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    history_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ConversationId = table.Column<int>(type: "int", nullable: false),
+                    StageId = table.Column<int>(type: "int", nullable: false),
+                    ChangedByUserId = table.Column<int>(type: "int", nullable: false),
                     ChangedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
@@ -738,8 +859,8 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "conversation_tags",
                 columns: table => new
                 {
-                    ConversationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TagId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    ConversationId = table.Column<int>(type: "int", nullable: false),
+                    TagId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -762,9 +883,10 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "internal_notes",
                 columns: table => new
                 {
-                    note_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ConversationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    note_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ConversationId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
@@ -790,9 +912,10 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "messages",
                 columns: table => new
                 {
-                    message_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ConversationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SenderUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    message_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ConversationId = table.Column<int>(type: "int", nullable: false),
+                    SenderUserId = table.Column<int>(type: "int", nullable: true),
                     SenderType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     MessageType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
@@ -823,15 +946,16 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "routing_decisions",
                 columns: table => new
                 {
-                    decision_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ConversationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RecommendedUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    decision_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ConversationId = table.Column<int>(type: "int", nullable: false),
+                    RecommendedUserId = table.Column<int>(type: "int", nullable: true),
                     Topic = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Language = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Sentiment = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Priority = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     VipFlag = table.Column<bool>(type: "bit", nullable: false),
-                    AutoReply = table.Column<bool>(type: "bit", nullable: false),
+                    AutoReply = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
                     Mode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
@@ -916,6 +1040,36 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "IX_audit_logs_TenantId",
                 table: "audit_logs",
                 column: "TenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_campaign_recipients_CampaignId",
+                table: "campaign_recipients",
+                column: "CampaignId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_campaign_recipients_CustomerId",
+                table: "campaign_recipients",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_campaign_tags_tag_id",
+                table: "campaign_tags",
+                column: "tag_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_campaigns_CreatedBy",
+                table: "campaigns",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_campaigns_TenantId",
+                table: "campaigns",
+                column: "TenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_campaigns_WaAccountId",
+                table: "campaigns",
+                column: "WaAccountId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_conversation_stage_histories_ChangedByUserId",
@@ -1114,6 +1268,12 @@ namespace WaslX.Persistance.Data.Migrations
                 name: "audit_logs");
 
             migrationBuilder.DropTable(
+                name: "campaign_recipients");
+
+            migrationBuilder.DropTable(
+                name: "campaign_tags");
+
+            migrationBuilder.DropTable(
                 name: "conversation_stage_histories");
 
             migrationBuilder.DropTable(
@@ -1148,6 +1308,9 @@ namespace WaslX.Persistance.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "campaigns");
 
             migrationBuilder.DropTable(
                 name: "tags");

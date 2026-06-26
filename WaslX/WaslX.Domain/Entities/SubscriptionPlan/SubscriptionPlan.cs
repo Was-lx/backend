@@ -1,4 +1,4 @@
-﻿using WaslX.Domain.SharedEnums;
+using WaslX.Domain.SharedEnums;
 using System;
 using System.Collections.Generic;
 using WaslX.Domain.Common;
@@ -10,8 +10,8 @@ namespace WaslX.Domain.Entities
         public string Name { get; set; } = string.Empty;
         public int MaxAgents { get; set; }
         public int MaxNumbers { get; set; }
-        public int MonthlyMsgQuota { get; set; }
-        public int MonthlyAiQuota { get; set; }
+        public int MsgQuota { get; set; }
+        public int AiQuota { get; set; }
         public decimal Price { get; set; }
         public BillingCycle BillingCycle { get; set; }
 
