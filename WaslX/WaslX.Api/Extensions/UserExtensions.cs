@@ -12,4 +12,10 @@ public static class UserExtensions
     {
         return user.FindFirstValue(ClaimTypes.GivenName);
     }
+
+    public static int? GetTenantId(this ClaimsPrincipal user)
+    {
+        var value = user.FindFirstValue("tenantId");
+        return int.TryParse(value, out var tenantId) ? tenantId : null;
+    }
 }

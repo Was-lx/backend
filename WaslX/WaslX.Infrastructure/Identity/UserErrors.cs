@@ -32,6 +32,9 @@ public static class UserErrors
     public static readonly Error InvalidOtp =
         new("User.InvalidOtp", "Invalid Otp", StatusCodes.Status401Unauthorized);
 
+    public static readonly Error InvalidCode =
+        new("User.InvalidCode", "Invalid password reset code", StatusCodes.Status400BadRequest);
+
     public static readonly Error DuplicatedConfirmation =
         new("User.DuplicatedConfirmation", "Email already confirmed", StatusCodes.Status400BadRequest);
 

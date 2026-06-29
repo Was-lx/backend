@@ -50,9 +50,8 @@ namespace WaslX.Api
                           .AllowAnyMethod()
                           .AllowCredentials()));
 
-            // Hangfire shares the same SQL Server database as the app (its own schema),
-            // so there's a single connection string to configure on deploy.
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            // Hangfire uses its own dedicated database, separate from the app's data.
+            var connectionString = configuration.GetConnectionString("HangfireConnection");
             var hangfire = configuration.GetSection(HangfireSettings.SectionName).Get<HangfireSettings>()!;
 
             services.AddHangfire(config => config
