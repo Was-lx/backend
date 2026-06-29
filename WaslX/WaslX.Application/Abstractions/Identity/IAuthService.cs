@@ -1,36 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using WaslX.Application.Features.Auth.Dtos;
+using WaslX.Application.Features.Roles.Dtos;
+using WaslX.Application.Features.Users.Dtos;
 using WaslX.Domain.Results;
 
 namespace WaslX.Application.Abstractions.Identity;
 
 public interface IAuthService
 {
-    Task<Result<AuthResponse>> FindByEmailAsync(string email);
-    Task<Result<AuthResponse>> FindByIdAsync(string userId);
-    Task<Result<AuthResponse>> FindByRefreshTokenAsync(string token);
+    // Public auth flows
+    Task<Result> RegisterAsync(string email, string password, string fullName, string? phoneNumber, CancellationToken cancellationToken = default);
+    Task<Result<AuthResponse>> LoginAsync(string email, string password, CancellationToken cancellationToken = default);
+    Task<Result<AuthResponse>> RefreshTokenAsync(string token, string refreshToken, CancellationToken cancellationToken = default);
+    Task<Result> RevokeRefreshTokenAsync(string token, string refreshToken, CancellationToken cancellationToken = default);
 
-    Task<Result<string>> CreateUserAsync(string email, string password, string fullName, string role, string? phoneNumber = null);
-    Task<Result> CheckPasswordAsync(string userId, string password);
+    // Email confirmation (OTP based)
+    Task<Result<AuthResponse>> ConfirmEmailAsync(string email, string otp);
+    Task<Result> ResendConfirmationEmailAsync(string email);
+
+    // Password reset (emailed code, ASP.NET Identity reset token)
+    Task<Result> SendResetPasswordCodeAsync(string email);
+    Task<Result> ResetPasswordAsync(string email, string code, string newPassword);
+
+    // Authenticated user
+    Task<Result> ChangePasswordAsync(string userId, string oldPassword, string newPassword);
     Task<Result<IReadOnlyList<string>>> GetRolesAsync(string userId);
 
-    // OTP-based email confirmation
-    Task<Result> SendEmailConfirmationOtpAsync(string email);
-    Task<Result> ConfirmEmailAsync(string email, string otp);
+    // Admin user & role management
+    Task<Result<string>> CreateUserAsync(string email, string fullName, string role, int? tenantId, string? phoneNumber, CancellationToken cancellationToken = default);
+    Task<Result> AssignRoleAsync(string userId, string role);
+    Task<Result> SetUserStatusAsync(string userId, bool isDisabled);
+    Task<Result<IReadOnlyList<UserResponse>>> GetUsersAsync(int? tenantId, CancellationToken cancellationToken = default);
 
-    // OTP-based password reset
-    Task<Result> SendPasswordResetOtpAsync(string email);
-    Task<Result> ResetPasswordAsync(string email, string otp, string newPassword);
-
-    // Donor account activation (creates confirmed user + sends set-password OTP)
-    Task<Result<string>> CreateConfirmedUserAsync(string email, string fullName, string role, string? phone = null);
-    Task<Result> SendAccountActivationOtpAsync(string email);
-    Task SendRejectionEmailAsync(string email, string name, string reason);
-
-    // Refresh tokens
-    Task<Result> AddRefreshTokenAsync(string userId, string token, DateTime expiresOn);
-    Task<Result> ValidateRefreshTokenAsync(string userId, string token);
-    Task<Result> RevokeRefreshTokenAsync(string userId, string token);
+    // Roles
+    Task<Result<IReadOnlyList<RoleResponse>>> GetRolesListAsync();
 }
