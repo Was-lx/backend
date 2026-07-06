@@ -5,9 +5,6 @@ namespace WaslX.Infrastructure.Identity;
 
 public static class UserErrors
 {
-    public static readonly Error Unauthorized =
-        new("User.Unauthorized", "Only Admin can register", StatusCodes.Status401Unauthorized);
-
     public static readonly Error InvalidCredentials =
         new("User.InvalidCredentials", "Invalid email/password", StatusCodes.Status401Unauthorized);
 
@@ -43,14 +40,4 @@ public static class UserErrors
 
     public static readonly Error InvalidRoles =
         new("Role.InvalidRoles", "Invalid roles", StatusCodes.Status401Unauthorized);
-
-    public static readonly Error NotCompletedProfile =
-        new("User.NotCompletedProfile", "User profile is not completed", StatusCodes.Status400BadRequest);
-
-    public static readonly Error InvalidPassword =
-    new Error("InvalidPassword", "The provided old password is incorrect.", StatusCodes.Status400BadRequest);
-
-    public static readonly Error PatientsOnly =
-        new("User.PatientsOnly", "Only Patiets can see recordes and some doctors", StatusCodes.Status401Unauthorized);
-
 }

@@ -832,6 +832,54 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("messages", (string)null);
                 });
 
+            modelBuilder.Entity("WaslX.Domain.Entities.PaymentMethod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("payment_method_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ExpMonth")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExpYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HolderName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Last4")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("payment_methods", (string)null);
+                });
+
             modelBuilder.Entity("WaslX.Domain.Entities.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -840,6 +888,11 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasColumnName("permission_id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -854,6 +907,21 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("IsScope")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ScopeOptions")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Tier")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -863,6 +931,351 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("permissions", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "Conversations",
+                            Code = "conversation.view_scope",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Which conversations they can see",
+                            IsScope = true,
+                            ScopeOptions = "assigned,team,all",
+                            SortOrder = 10,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "Conversations",
+                            Code = "conversation.reply",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Send WhatsApp replies",
+                            IsScope = false,
+                            SortOrder = 11,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "Conversations",
+                            Code = "conversation.note",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Add internal notes",
+                            IsScope = false,
+                            SortOrder = 12,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "Conversations",
+                            Code = "conversation.status",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Change conversation status",
+                            IsScope = false,
+                            SortOrder = 13,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "Conversations",
+                            Code = "conversation.priority",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Set conversation priority",
+                            IsScope = false,
+                            SortOrder = 14,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "Conversations",
+                            Code = "conversation.assign",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Assign / take conversations",
+                            IsScope = false,
+                            SortOrder = 15,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Category = "Conversations",
+                            Code = "conversation.stage_handoff",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Move a conversation across stages",
+                            IsScope = false,
+                            SortOrder = 16,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Category = "Conversations",
+                            Code = "conversation.delete",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Delete conversations",
+                            IsScope = false,
+                            SortOrder = 17,
+                            Tier = "AdminOnly"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Category = "Contacts",
+                            Code = "contact.view_scope",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Which contacts they can see",
+                            IsScope = true,
+                            ScopeOptions = "team,all",
+                            SortOrder = 20,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Category = "Contacts",
+                            Code = "contact.edit",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Edit contact details",
+                            IsScope = false,
+                            SortOrder = 21,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Category = "Contacts",
+                            Code = "contact.export",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Export contacts",
+                            IsScope = false,
+                            SortOrder = 22,
+                            Tier = "ManagerPlus"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Category = "Contacts",
+                            Code = "contact.delete",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Delete contacts",
+                            IsScope = false,
+                            SortOrder = 23,
+                            Tier = "AdminOnly"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Category = "Tags",
+                            Code = "tag.apply",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Apply / remove tags",
+                            IsScope = false,
+                            SortOrder = 30,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Category = "Tags",
+                            Code = "tag.manage",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create / edit / delete tags",
+                            IsScope = false,
+                            SortOrder = 31,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Category = "Routing & Teams",
+                            Code = "routing.configure",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Configure routing / round-robin",
+                            IsScope = false,
+                            SortOrder = 40,
+                            Tier = "ManagerPlus"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Category = "Routing & Teams",
+                            Code = "group.manage",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Manage groups, teams & stages",
+                            IsScope = false,
+                            SortOrder = 41,
+                            Tier = "ManagerPlus"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Category = "Routing & Teams",
+                            Code = "assignment.reassign_others",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Reassign other people's conversations",
+                            IsScope = false,
+                            SortOrder = 42,
+                            Tier = "ManagerPlus"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Category = "AI",
+                            Code = "ai.use_suggestions",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "See AI reply suggestions",
+                            IsScope = false,
+                            SortOrder = 50,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Category = "AI",
+                            Code = "ai.configure",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Configure AI (RAG / routing / models)",
+                            IsScope = false,
+                            SortOrder = 51,
+                            Tier = "AdminOnly"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Category = "Campaigns",
+                            Code = "campaign.view",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View campaigns",
+                            IsScope = false,
+                            SortOrder = 60,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Category = "Campaigns",
+                            Code = "campaign.create_send",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create & send campaigns",
+                            IsScope = false,
+                            SortOrder = 61,
+                            Tier = "ManagerPlus"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Category = "Reports",
+                            Code = "report.view_own",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View own performance",
+                            IsScope = false,
+                            SortOrder = 70,
+                            Tier = "Configurable"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Category = "Reports",
+                            Code = "report.view_team",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View team reports",
+                            IsScope = false,
+                            SortOrder = 71,
+                            Tier = "ManagerPlus"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Category = "Reports",
+                            Code = "report.export",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Export reports",
+                            IsScope = false,
+                            SortOrder = 72,
+                            Tier = "ManagerPlus"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Category = "WhatsApp",
+                            Code = "channel.connect",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Connect / disconnect WhatsApp",
+                            IsScope = false,
+                            SortOrder = 80,
+                            Tier = "AdminOnly"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Category = "WhatsApp",
+                            Code = "template.manage",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Manage message templates",
+                            IsScope = false,
+                            SortOrder = 81,
+                            Tier = "ManagerPlus"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Category = "Team & Access",
+                            Code = "user.manage",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Invite / manage users & assign roles",
+                            IsScope = false,
+                            SortOrder = 90,
+                            Tier = "AdminOnly"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Category = "Team & Access",
+                            Code = "role.manage",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Edit roles & permissions",
+                            IsScope = false,
+                            SortOrder = 91,
+                            Tier = "AdminOnly"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Category = "Workspace",
+                            Code = "billing.manage",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Manage plan, subscription & invoices",
+                            IsScope = false,
+                            SortOrder = 100,
+                            Tier = "AdminOnly"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Category = "Workspace",
+                            Code = "settings.manage",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Manage workspace settings",
+                            IsScope = false,
+                            SortOrder = 101,
+                            Tier = "AdminOnly"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Category = "Workspace",
+                            Code = "audit.view",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View audit logs",
+                            IsScope = false,
+                            SortOrder = 102,
+                            Tier = "AdminOnly"
+                        });
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.PlatformUser", b =>
@@ -1066,8 +1479,26 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Features")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCustom")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit");
 
                     b.Property<int>("MaxAgents")
                         .HasColumnType("int");
@@ -1087,10 +1518,27 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal?>("PriceYearly")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Tagline")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("TrialDays")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
 
                     b.ToTable("subscription_plans", (string)null);
                 });
@@ -1152,24 +1600,57 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("CurrentPeriodEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CustomerType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Industry")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<bool>("OnboardingCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("OnboardingStep")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<int>("PlanId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PlatformUserId")
+                    b.Property<int?>("PlatformUserId")
                         .HasColumnType("int");
+
+                    b.Property<string>("SelectedBillingCycle")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<DateTime?>("TrialEndsAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.HasKey("Id");
 
@@ -1178,6 +1659,34 @@ namespace WaslX.Persistance.Data.Migrations
                     b.HasIndex("PlatformUserId");
 
                     b.ToTable("tenants", (string)null);
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.TenantRolePermission", b =>
+                {
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsGranted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ScopeValue")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("TenantId", "Role", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.HasIndex("TenantId", "Role");
+
+                    b.ToTable("tenant_role_permissions", (string)null);
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.User", b =>
@@ -1452,7 +1961,7 @@ namespace WaslX.Persistance.Data.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "SUPERADMIN@WASLX.COM",
                             NormalizedUserName = "SUPERADMIN@WASLX.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEB3XdvSm05juJA7XtdnPvc9q3qOFwxYwxE6TfivyoRo7eoenY+Ai+gN/4RTrNtDcsA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEA6r/FP7XqhGDyDGpbH5v6AwD1dsPhxGGSfq+2geEyCIvNhhdzYc34QRS7q9NS/jXg==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "f6a7b8c9-d0e1-4f2a-b3c4-5d6e7f809102",
                             TwoFactorEnabled = false,
@@ -1817,6 +2326,17 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("SenderUser");
                 });
 
+            modelBuilder.Entity("WaslX.Domain.Entities.PaymentMethod", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("PaymentMethods")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("WaslX.Domain.Entities.RolePermission", b =>
                 {
                     b.HasOne("WaslX.Domain.Entities.Permission", "Permission")
@@ -1887,12 +2407,30 @@ namespace WaslX.Persistance.Data.Migrations
                     b.HasOne("WaslX.Domain.Entities.PlatformUser", "PlatformUser")
                         .WithMany("Tenants")
                         .HasForeignKey("PlatformUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Plan");
 
                     b.Navigation("PlatformUser");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.TenantRolePermission", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Permission", "Permission")
+                        .WithMany("TenantGrants")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.User", b =>
@@ -2024,6 +2562,8 @@ namespace WaslX.Persistance.Data.Migrations
             modelBuilder.Entity("WaslX.Domain.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
+
+                    b.Navigation("TenantGrants");
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.PlatformUser", b =>
@@ -2074,6 +2614,10 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("Invoices");
 
                     b.Navigation("KnowledgeVectors");
+
+                    b.Navigation("PaymentMethods");
+
+                    b.Navigation("RolePermissions");
 
                     b.Navigation("Tags");
 

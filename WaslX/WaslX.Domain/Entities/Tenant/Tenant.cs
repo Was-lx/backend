@@ -8,13 +8,33 @@ namespace WaslX.Domain.Entities
     public class Tenant : BaseEntity
     {
         public int PlanId { get; set; }
-        public int PlatformUserId { get; set; }
+        // Nullable: self-serve tenants (a business that signs up itself) are owned by
+        // their own Admin user, not by a platform super-admin. Only tenants provisioned
+        // from the SuperAdmin console carry a PlatformUserId.
+        public int? PlatformUserId { get; set; }
         public string Name { get; set; } = string.Empty;
         public TenantStatus Status { get; set; }
         public BillingStatus BillingStatus { get; set; }
 
+        // ── Organization profile (collected at sign-up / by the super-admin) ──
+        public string? Website { get; set; }
+        public string? Industry { get; set; }
+        public string? PhoneNumber { get; set; }
+        public CustomerType CustomerType { get; set; } = CustomerType.Unknown;
+
+        // ── Trial & billing lifecycle ──
+        public DateTime? TrialEndsAt { get; set; }
+        public DateTime? CurrentPeriodEnd { get; set; }
+        public BillingCycle? SelectedBillingCycle { get; set; }   // chosen at subscribe (monthly | yearly)
+
+        // ── Onboarding wizard progress (resumable) ──
+        public int OnboardingStep { get; set; }
+        public bool OnboardingCompleted { get; set; }
+
         public SubscriptionPlan Plan { get; set; } = null!;
-        public PlatformUser PlatformUser { get; set; } = null!;
+        public PlatformUser? PlatformUser { get; set; }
+        public ICollection<TenantRolePermission> RolePermissions { get; set; } = new HashSet<TenantRolePermission>();
+        public ICollection<PaymentMethod> PaymentMethods { get; set; } = new HashSet<PaymentMethod>();
         public ICollection<Invoice> Invoices { get; set; } = new HashSet<Invoice>();
         public ICollection<FAQ> FAQs { get; set; } = new HashSet<FAQ>();
         public ICollection<Customer> Customers { get; set; } = new HashSet<Customer>();

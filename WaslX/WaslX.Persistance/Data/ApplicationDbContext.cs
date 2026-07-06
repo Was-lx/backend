@@ -32,6 +32,8 @@ namespace WaslX.Persistance.Data
         public DbSet<PlatformUser> PlatformUsers { get; set; }
         public new DbSet<Role> Roles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<TenantRolePermission> TenantRolePermissions { get; set; }
+        public DbSet<PaymentMethod> PaymentMethods { get; set; }
         public DbSet<RoutingDecision> RoutingDecisions { get; set; }
         public DbSet<Stage> Stages { get; set; }
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }

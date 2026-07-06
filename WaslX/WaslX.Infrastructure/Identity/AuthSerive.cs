@@ -142,6 +142,22 @@ internal class AuthSerive(
         return Result.Success();
     }
 
+    public async Task<Result> LogoutAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return Result.Failure(UserErrors.UserNotFound);
+
+        // Revoke every active refresh token so the session can't be renewed.
+        var now = DateTime.UtcNow;
+        foreach (var token in user.RefreshTokens.Where(t => t.IsActive))
+            token.RevokedOn = now;
+
+        await _userManager.UpdateAsync(user);
+
+        return Result.Success();
+    }
+
     // ------------------------------------------------------- Email confirmation
 
     public async Task<Result<AuthResponse>> ConfirmEmailAsync(string email, string otp)
@@ -255,6 +271,16 @@ internal class AuthSerive(
         return Result.Success<IReadOnlyList<string>>(roles.ToList());
     }
 
+    public async Task<Result<AuthResponse>> BuildSessionAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return Result.Failure<AuthResponse>(UserErrors.UserNotFound);
+
+        var response = await BuildAuthResponseAsync(user);
+        return Result.Success(response);
+    }
+
     // ------------------------------------------------ Admin user management
 
     public async Task<Result<string>> CreateUserAsync(string email, string fullName, string role, int? tenantId, string? phoneNumber, CancellationToken cancellationToken = default)
@@ -296,13 +322,35 @@ internal class AuthSerive(
         return Result.Success(user.Id);
     }
 
-    public async Task<Result> AssignRoleAsync(string userId, string role)
+    public async Task<Result> UpdateUserAsync(string userId, string fullName, string? phoneNumber, int? callerTenantId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null || IsCrossTenant(user, callerTenantId))
+            return Result.Failure(UserErrors.UserNotFound);
+
+        user.FullName = fullName;
+        user.PhoneNumber = phoneNumber;
+
+        var result = await _userManager.UpdateAsync(user);
+
+        if (result.Succeeded)
+            return Result.Success();
+
+        var error = result.Errors.First();
+        return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+    }
+
+    public async Task<Result> AssignRoleAsync(string userId, string role, int? callerTenantId)
     {
         if (!await _roleManager.RoleExistsAsync(role))
             return Result.Failure(UserErrors.InvalidRoles);
 
+        // A tenant admin can never grant the platform-level SuperAdmin role.
+        if (callerTenantId is not null && string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            return Result.Failure(UserErrors.InvalidRoles);
+
         var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
+        if (user is null || IsCrossTenant(user, callerTenantId))
             return Result.Failure(UserErrors.UserNotFound);
 
         // Each user has exactly one role: replace any existing roles.
@@ -319,10 +367,10 @@ internal class AuthSerive(
         return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
     }
 
-    public async Task<Result> SetUserStatusAsync(string userId, bool isDisabled)
+    public async Task<Result> SetUserStatusAsync(string userId, bool isDisabled, int? callerTenantId)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
+        if (user is null || IsCrossTenant(user, callerTenantId))
             return Result.Failure(UserErrors.UserNotFound);
 
         user.IsDisabled = isDisabled;
@@ -330,6 +378,14 @@ internal class AuthSerive(
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// A tenant admin (callerTenantId != null) may only touch users inside their own
+    /// tenant. SuperAdmin (callerTenantId == null) is unrestricted. Returning "not found"
+    /// for a cross-tenant target avoids leaking that the user exists elsewhere.
+    /// </summary>
+    private static bool IsCrossTenant(ApplicationUser user, int? callerTenantId) =>
+        callerTenantId is not null && user.TenantId != callerTenantId;
 
     public async Task<Result<IReadOnlyList<UserResponse>>> GetUsersAsync(int? tenantId, CancellationToken cancellationToken = default)
     {
@@ -411,7 +467,7 @@ internal class AuthSerive(
 
     private void SendResetPasswordEmail(ApplicationUser user, string code)
     {
-        var actionUrl = $"{_appSettings.FrontendBaseUrl}/auth/reset-password?email={Uri.EscapeDataString(user.Email!)}&code={code}";
+        var actionUrl = $"{_appSettings.FrontendBaseUrl}/login/reset-password?email={Uri.EscapeDataString(user.Email!)}&code={code}";
 
         var body = EmailBodyBuilder.GenerateEmailBody("ForgetPassword", new Dictionary<string, string>
         {

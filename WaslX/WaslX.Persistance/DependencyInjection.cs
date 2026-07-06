@@ -37,6 +37,11 @@ namespace WaslX.Persistance
                 options.Password.RequireLowercase = true;
                 options.Password.RequireNonAlphanumeric = false;
 
+                // Account lockout: lock for 15 min after 5 consecutive failed sign-ins.
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                options.Lockout.AllowedForNewUsers = true;
+
                 options.SignIn.RequireConfirmedEmail = true;
             })
                 .AddRoles<ApplicationRole>()
@@ -45,6 +50,14 @@ namespace WaslX.Persistance
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped(typeof(IGenericRepository<,>), typeof(GenericRepository<,>));
+
+            // Platform / billing / RBAC services (need direct DbContext access).
+            services.AddScoped<WaslX.Application.Abstractions.Permissions.IPermissionService, WaslX.Persistance.Services.PermissionService>();
+            services.AddScoped<WaslX.Application.Abstractions.Billing.ISubscriptionPlanService, WaslX.Persistance.Services.SubscriptionPlanService>();
+            services.AddScoped<WaslX.Application.Abstractions.Billing.ISubscriptionService, WaslX.Persistance.Services.SubscriptionService>();
+            services.AddScoped<WaslX.Application.Abstractions.Tenants.ITenantProvisioningService, WaslX.Persistance.Services.TenantProvisioningService>();
+            services.AddScoped<WaslX.Application.Abstractions.Tenants.ITenantService, WaslX.Persistance.Services.TenantService>();
+            services.AddScoped<WaslX.Application.Abstractions.Profile.IProfileService, WaslX.Persistance.Services.ProfileService>();
 
             return services;
         }
