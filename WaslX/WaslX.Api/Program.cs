@@ -1,6 +1,7 @@
 using Hangfire;
 using Serilog;
 using WaslX.Api;
+using WaslX.Api.Extensions;
 using WaslX.Application;
 using WaslX.Infrastructure;
 using WaslX.Persistance;
@@ -20,15 +21,27 @@ builder.Services
 
 var app = builder.Build();
 
+// Create databases (if missing) and apply migrations before the request
+// pipeline and the Hangfire server start.
+await app.InitializeDatabasesAsync();
+
+// Idempotent seed: subscription plans + a ready demo workspace/Admin, so a
+// fresh database is immediately usable (sign-up needs plans to exist first).
+await app.SeedDemoDataAsync();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Dev-only API docs — exempt from the global authenticated-user fallback policy.
+    app.MapOpenApi().AllowAnonymous();
 }
 
 app.UseSerilogRequestLogging();
 
-app.UseHttpsRedirection();
+// In Development we serve plain HTTP too (no redirect) so the SPA/preview can call
+// the API without a trusted dev certificate. Production still forces HTTPS.
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
 
 app.UseCors(WaslX.Api.DependencyInjection.CorsPolicy);
 

@@ -2,7 +2,10 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
+using WaslX.Api.Authorization;
+using WaslX.Application.Abstractions.Permissions;
 using WaslX.Infrastructure.Settings;
 
 namespace WaslX.Api
@@ -41,11 +44,26 @@ namespace WaslX.Api
                     };
                 });
 
-            services.AddAuthorization();
+            // Fine-grained permission enforcement: [HasPermission("code")] resolves to a
+            // "perm:code" policy checked server-side against the per-tenant RBAC matrix.
+            services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+            services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
+            services.AddAuthorization(options =>
+            {
+                // Defense in depth: any endpoint without explicit auth metadata still
+                // requires an authenticated user ([AllowAnonymous] opts out where needed).
+                options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+            });
+
+            var frontendUrl = configuration["App:FrontendBaseUrl"] ?? "http://localhost:4300";
             services.AddCors(options =>
                 options.AddPolicy(CorsPolicy, policy =>
-                    policy.WithOrigins(configuration["App:FrontendBaseUrl"] ?? "http://localhost:4200")
+                    policy.SetIsOriginAllowed(origin =>
+                              string.Equals(origin, frontendUrl, StringComparison.OrdinalIgnoreCase) ||
+                              (Uri.TryCreate(origin, UriKind.Absolute, out var u) && u.Host == "localhost"))
                           .AllowAnyHeader()
                           .AllowAnyMethod()
                           .AllowCredentials()));

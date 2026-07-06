@@ -16,6 +16,11 @@ namespace WaslX.Persistance.Configurations
             builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
             builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
             builder.Property(x => x.BillingStatus).HasConversion<string>().HasMaxLength(50);
+            builder.Property(x => x.Website).HasMaxLength(300);
+            builder.Property(x => x.Industry).HasMaxLength(120);
+            builder.Property(x => x.PhoneNumber).HasMaxLength(40);
+            builder.Property(x => x.CustomerType).HasConversion<string>().HasMaxLength(20);
+            builder.Property(x => x.SelectedBillingCycle).HasConversion<string>().HasMaxLength(20);
             builder.HasOne(x => x.Plan).WithMany(x => x.Tenants).HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.PlatformUser).WithMany(x => x.Tenants).HasForeignKey(x => x.PlatformUserId).OnDelete(DeleteBehavior.Restrict);
         }

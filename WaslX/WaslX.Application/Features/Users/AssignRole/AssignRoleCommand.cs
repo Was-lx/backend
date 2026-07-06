@@ -5,12 +5,12 @@ using WaslX.Domain.Results;
 
 namespace WaslX.Application.Features.Users.AssignRole;
 
-public record AssignRoleCommand(string UserId, string Role) : ICommand;
+public record AssignRoleCommand(string UserId, string Role, int? CallerTenantId) : ICommand;
 
 public class AssignRoleCommandHandler(IAuthService authService) : ICommandHandler<AssignRoleCommand>
 {
     public Task<Result> Handle(AssignRoleCommand request, CancellationToken cancellationToken) =>
-        authService.AssignRoleAsync(request.UserId, request.Role);
+        authService.AssignRoleAsync(request.UserId, request.Role, request.CallerTenantId);
 }
 
 public class AssignRoleCommandValidator : AbstractValidator<AssignRoleCommand>

@@ -4,10 +4,10 @@ using WaslX.Domain.Results;
 
 namespace WaslX.Application.Features.Users.SetUserStatus;
 
-public record SetUserStatusCommand(string UserId, bool IsDisabled) : ICommand;
+public record SetUserStatusCommand(string UserId, bool IsDisabled, int? CallerTenantId) : ICommand;
 
 public class SetUserStatusCommandHandler(IAuthService authService) : ICommandHandler<SetUserStatusCommand>
 {
     public Task<Result> Handle(SetUserStatusCommand request, CancellationToken cancellationToken) =>
-        authService.SetUserStatusAsync(request.UserId, request.IsDisabled);
+        authService.SetUserStatusAsync(request.UserId, request.IsDisabled, request.CallerTenantId);
 }
