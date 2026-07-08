@@ -45,8 +45,9 @@ namespace WaslX.Persistance.Data
         public new DbSet<User> Users { get; set; }
         public DbSet<UserGroup> UserGroups { get; set; }
         public DbSet<WhatsAppAccount> WhatsAppAccounts { get; set; }
+        public DbSet<WhatsAppWebhookLog> WhatsAppWebhookLogs { get; set; }
 
-        
+
     }
 }
 
