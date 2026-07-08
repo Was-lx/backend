@@ -3,13 +3,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using WaslX.Application.Abstractions.Billing;
+using WaslX.Application.Abstractions.Permissions;
+using WaslX.Application.Abstractions.Profile;
+using WaslX.Application.Abstractions.Tenants;
+using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Domain.Contracts.Infrastructure;
 using WaslX.Infrastructure.Identity;
 using WaslX.Persistance.Data;
 using WaslX.Persistance.Repos;
+using WaslX.Persistance.Services;
 using WaslX.Persistance.UnitOfWorks;
 
 namespace WaslX.Persistance
@@ -52,12 +55,16 @@ namespace WaslX.Persistance
             services.AddScoped(typeof(IGenericRepository<,>), typeof(GenericRepository<,>));
 
             // Platform / billing / RBAC services (need direct DbContext access).
-            services.AddScoped<WaslX.Application.Abstractions.Permissions.IPermissionService, WaslX.Persistance.Services.PermissionService>();
-            services.AddScoped<WaslX.Application.Abstractions.Billing.ISubscriptionPlanService, WaslX.Persistance.Services.SubscriptionPlanService>();
-            services.AddScoped<WaslX.Application.Abstractions.Billing.ISubscriptionService, WaslX.Persistance.Services.SubscriptionService>();
-            services.AddScoped<WaslX.Application.Abstractions.Tenants.ITenantProvisioningService, WaslX.Persistance.Services.TenantProvisioningService>();
-            services.AddScoped<WaslX.Application.Abstractions.Tenants.ITenantService, WaslX.Persistance.Services.TenantService>();
-            services.AddScoped<WaslX.Application.Abstractions.Profile.IProfileService, WaslX.Persistance.Services.ProfileService>();
+            services.AddScoped<IPermissionService, PermissionService>();
+            services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
+            services.AddScoped<ISubscriptionService, SubscriptionService>();
+            services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+            services.AddScoped<ITenantService, TenantService>();
+            services.AddScoped<IProfileService, ProfileService>();
+
+            // WhatsApp (needs direct DbContext for multi-entity conversation/message writes).
+            services.AddScoped<IWhatsAppService, WhatsAppService>();
+            services.AddScoped<IWhatsAppWebhookProcessor, WhatsAppWebhookProcessor>();
 
             return services;
         }

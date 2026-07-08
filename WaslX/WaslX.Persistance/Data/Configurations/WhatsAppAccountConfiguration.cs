@@ -14,9 +14,12 @@ namespace WaslX.Persistance.Configurations
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).HasColumnName("wa_account_id");
             builder.Property(x => x.PhoneNumber).HasMaxLength(30).IsRequired();
-            builder.Property(x => x.AccessToken).HasMaxLength(1000).IsRequired();
+            builder.Property(x => x.AccessToken).HasMaxLength(2000).IsRequired();
             builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
             builder.HasOne(x => x.Tenant).WithMany(x => x.WhatsAppAccounts).HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(x => x.PhoneNumberId).HasMaxLength(20).IsRequired();
+            builder.Property(x => x.whatsAppBusinessAccountId).HasMaxLength(20).IsRequired();
         }
     }
 }

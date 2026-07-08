@@ -3,10 +3,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WaslX.Application.Abstractions.Authentication;
 using WaslX.Application.Abstractions.Identity;
+using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Infrastructure.Authentication;
 using WaslX.Infrastructure.Email;
 using WaslX.Infrastructure.Identity;
 using WaslX.Infrastructure.Settings;
+using WaslX.Infrastructure.WhatsApp;
 
 namespace WaslX.Infrastructure
 {
@@ -18,11 +20,15 @@ namespace WaslX.Infrastructure
             services.Configure<MailSettings>(configuration.GetSection(MailSettings.SectionName));
             services.Configure<HangfireSettings>(configuration.GetSection(HangfireSettings.SectionName));
             services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
+            services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
 
             services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IAuthService, AuthSerive>();
 
             services.AddScoped<IEmailSender, EmailService>();
+
+            // Meta WhatsApp Cloud API client (typed HttpClient via IHttpClientFactory).
+            services.AddHttpClient<IMetaGraphApiService, MetaGraphApiService>();
 
             return services;
         }
