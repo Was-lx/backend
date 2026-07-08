@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WaslX.Persistance.Data;
 
@@ -11,9 +12,11 @@ using WaslX.Persistance.Data;
 namespace WaslX.Persistance.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260707212827_AddMetaFieldsToWhatsAppAccount")]
+    partial class AddMetaFieldsToWhatsAppAccount
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1766,8 +1769,8 @@ namespace WaslX.Persistance.Data.Migrations
 
                     b.Property<string>("AccessToken")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("ConnectedAt")
                         .HasColumnType("datetime2");
@@ -1793,9 +1796,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("TokenExpiresAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -1809,53 +1809,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("whatsapp_accounts", (string)null);
-                });
-
-            modelBuilder.Entity("WaslX.Domain.Entities.WhatsAppWebhookLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("wa_webhook_log_id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("PhoneNumberId")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<bool>("Processed")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ProcessingError")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("RawPayload")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("ReceivedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PhoneNumberId");
-
-                    b.HasIndex("Processed");
-
-                    b.ToTable("whatsapp_webhook_logs", (string)null);
                 });
 
             modelBuilder.Entity("WaslX.Infrastructure.Identity.ApplicationRole", b =>
@@ -2021,7 +1974,7 @@ namespace WaslX.Persistance.Data.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "SUPERADMIN@WASLX.COM",
                             NormalizedUserName = "SUPERADMIN@WASLX.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEKaD1c3EcvCjrvY5Jk+qTVC56NcN8xJ+z8qAf2JhFYS9s7a7ReH8cOZ63yTsbp25Kw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEMKBy2OROd4fzMqlOH27aii26eDbC8Qr1qPnxdnqLwVTcAJpPk4a2ZxdcMJwX7b9NQ==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "f6a7b8c9-d0e1-4f2a-b3c4-5d6e7f809102",
                             TwoFactorEnabled = false,

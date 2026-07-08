@@ -23,4 +23,13 @@ public static class AppErrors
     public static readonly Error PaymentDeclined = new("Billing.PaymentDeclined", "The card was declined", 402);
     public static readonly Error NoActiveSubscription = new("Billing.NoActiveSubscription", "No active subscription to change", 400);
     public static readonly Error PaymentMethodRequired = new("Billing.PaymentMethodRequired", "Add a payment method first", 400);
+
+    // WhatsApp / Meta Cloud API
+    public static readonly Error WhatsAppAccountNotFound = new("WhatsApp.AccountNotFound", "No WhatsApp account is connected for this workspace", 404);
+    public static readonly Error WhatsAppNotConnected = new("WhatsApp.NotConnected", "The WhatsApp account is not connected", 400);
+    public static readonly Error WhatsAppTokenExchangeFailed = new("WhatsApp.TokenExchangeFailed", "Could not exchange the authorization code with Meta", 400);
+    public static readonly Error WhatsAppBusinessInfoFailed = new("WhatsApp.BusinessInfoFailed", "Could not resolve the WhatsApp Business account details from Meta", 400);
+    public static readonly Error WhatsAppGraphApiError = new("WhatsApp.GraphApiError", "The Meta Graph API request failed", 502);
+    public static readonly Error WhatsAppSendFailed = new("WhatsApp.SendFailed", "Failed to send the WhatsApp message", 502);
+    public static readonly Error WhatsAppInvalidWebhookSignature = new("WhatsApp.InvalidWebhookSignature", "Webhook signature validation failed", 401);
 }
