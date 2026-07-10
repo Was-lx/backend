@@ -13,7 +13,7 @@ public class SendTextMessageCommandHandler(IWhatsAppService whatsAppService)
     : ICommandHandler<SendTextMessageCommand, SendMessageResult>
 {
     public Task<Result<SendMessageResult>> Handle(SendTextMessageCommand request, CancellationToken cancellationToken) =>
-        whatsAppService.SendTextAsync(request.TenantId, request.ToPhone, request.Text, cancellationToken);
+        whatsAppService.SendTextAsync(request.TenantId, request.ToPhone, request.Text, cancellationToken: cancellationToken);
 }
 
 public class SendTextMessageCommandValidator : AbstractValidator<SendTextMessageCommand>
