@@ -79,14 +79,16 @@ internal sealed class WhatsAppService(
         return Result.Success();
     }
 
-    public Task<Result<SendMessageResult>> SendTextAsync(int? tenantId, string toPhone, string text, CancellationToken cancellationToken = default) =>
+    public Task<Result<SendMessageResult>> SendTextAsync(int? tenantId, string toPhone, string text, int? senderUserId = null, CancellationToken cancellationToken = default) =>
         SendAsync(tenantId, toPhone, MessageType.Text, text,
             (account) => graphApi.SendTextMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, text, cancellationToken),
+            senderUserId,
             cancellationToken);
 
     public Task<Result<SendMessageResult>> SendTemplateAsync(int? tenantId, string toPhone, string templateName, string languageCode, CancellationToken cancellationToken = default) =>
         SendAsync(tenantId, toPhone, MessageType.Template, templateName,
             (account) => graphApi.SendTemplateMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, templateName, languageCode, cancellationToken),
+            null,
             cancellationToken);
 
     private async Task<Result<SendMessageResult>> SendAsync(
@@ -95,6 +97,7 @@ internal sealed class WhatsAppService(
         MessageType messageType,
         string content,
         Func<WhatsAppAccount, Task<Result<string>>> send,
+        int? senderUserId,
         CancellationToken cancellationToken)
     {
         if (tenantId is not { } tid)
@@ -117,6 +120,7 @@ internal sealed class WhatsAppService(
         var message = new Message
         {
             ConversationId = conversation.Id,
+            SenderUserId = senderUserId,
             SenderType = SenderType.Agent,
             MessageType = messageType,
             Content = content,
