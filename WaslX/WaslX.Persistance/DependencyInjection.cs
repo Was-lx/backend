@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WaslX.Application.Abstractions.Billing;
+using WaslX.Application.Abstractions.Inbox;
 using WaslX.Application.Abstractions.Permissions;
 using WaslX.Application.Abstractions.Profile;
 using WaslX.Application.Abstractions.Tenants;
@@ -65,6 +66,9 @@ namespace WaslX.Persistance
             // WhatsApp (needs direct DbContext for multi-entity conversation/message writes).
             services.AddScoped<IWhatsAppService, WhatsAppService>();
             services.AddScoped<IWhatsAppWebhookProcessor, WhatsAppWebhookProcessor>();
+
+            // Shared inbox (conversation list / history / reply).
+            services.AddScoped<IConversationService, ConversationService>();
 
             return services;
         }
