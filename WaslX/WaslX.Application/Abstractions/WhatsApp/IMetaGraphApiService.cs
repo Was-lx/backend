@@ -25,6 +25,14 @@ public interface IMetaGraphApiService
     /// <summary>Sends a plain text message. Returns the WhatsApp message id (wamid) on success.</summary>
     Task<Result<string>> SendTextMessageAsync(string phoneNumberId, string accessToken, string toPhone, string text, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sends an image/video/document by public link (Cloudinary URL) — WhatsApp fetches it itself,
+    /// no separate media-upload step against the Graph API is needed. Returns the WhatsApp message id.
+    /// </summary>
+    Task<Result<string>> SendMediaMessageAsync(
+        string phoneNumberId, string accessToken, string toPhone, string mediaType, string mediaUrl,
+        string? caption, string? fileName, CancellationToken cancellationToken = default);
+
     /// <summary>Sends a pre-approved template message. Returns the WhatsApp message id (wamid) on success.</summary>
     Task<Result<string>> SendTemplateMessageAsync(string phoneNumberId, string accessToken, string toPhone, string templateName, string languageCode, CancellationToken cancellationToken = default);
 
