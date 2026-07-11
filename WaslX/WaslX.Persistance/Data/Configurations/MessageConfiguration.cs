@@ -18,6 +18,9 @@ namespace WaslX.Persistance.Configurations
             builder.Property(x => x.MessageType).HasConversion<string>().HasMaxLength(50);
             builder.Property(x => x.WhatsAppMessageId).HasColumnName("wa_message_id").HasMaxLength(200).IsRequired();
             builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
+            builder.Property(x => x.MediaUrl).HasMaxLength(1000);
+            builder.Property(x => x.MediaMimeType).HasMaxLength(150);
+            builder.Property(x => x.MediaFileName).HasMaxLength(300);
             builder.HasOne(x => x.Conversation).WithMany(x => x.Messages).HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Cascade);
             builder.HasOne(x => x.SenderUser).WithMany(x => x.SentMessages).HasForeignKey(x => x.SenderUserId).OnDelete(DeleteBehavior.SetNull);
         }
