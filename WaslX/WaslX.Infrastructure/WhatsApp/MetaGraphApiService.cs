@@ -27,14 +27,16 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
         _http.BaseAddress = new Uri(_options.ApiBaseUrl.EndsWith('/') ? _options.ApiBaseUrl : _options.ApiBaseUrl + "/");
     }
 
-    public async Task<Result<MetaTokenResult>> ExchangeCodeForTokenAsync(string code, CancellationToken cancellationToken = default)
+    public async Task<Result<MetaTokenResult>> ExchangeCodeForTokenAsync(string code, string? redirectUri = null, CancellationToken cancellationToken = default)
     {
         try
         {
             // FB Login for Business (Embedded Signup) returns a code we swap for a long-lived
-            // business-integration system-user token in a single call.
+            // business-integration system-user token in a single call. When the code came from a
+            // real browser redirect (manual OAuth flow), redirect_uri must be echoed back exactly.
             var url = $"oauth/access_token?client_id={Uri.EscapeDataString(_options.AppId)}" +
                       $"&client_secret={Uri.EscapeDataString(_options.AppSecret)}" +
+                      (string.IsNullOrEmpty(redirectUri) ? "" : $"&redirect_uri={Uri.EscapeDataString(redirectUri)}") +
                       $"&code={Uri.EscapeDataString(code)}";
 
             using var response = await _http.GetAsync(url, cancellationToken);
@@ -182,6 +184,26 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
         catch (Exception ex)
         {
             return LogAndFail(AppErrors.WhatsAppGraphApiError, "mark read", ex);
+        }
+    }
+
+    public async Task<Result> SubscribeToWebhooksAsync(string wabaId, string accessToken, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{wabaId}/subscribed_apps");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await _http.SendAsync(request, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+                return LogAndFail(AppErrors.WhatsAppGraphApiError, "subscribe webhooks", body);
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return LogAndFail(AppErrors.WhatsAppGraphApiError, "subscribe webhooks", ex);
         }
     }
 
