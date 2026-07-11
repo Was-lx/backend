@@ -7,7 +7,7 @@ using WaslX.Domain.Results;
 namespace WaslX.Application.Features.Conversations.SendConversationMessage;
 
 /// <summary>Sends a text reply within an existing conversation, attributed to the sending user.</summary>
-public record SendConversationMessageCommand(int? TenantId, int CurrentUserId, bool IsPrivileged, int ConversationId, string Text)
+public record SendConversationMessageCommand(int? TenantId, int CurrentUserId, bool IsPrivileged, int ConversationId, string Text, string? CurrentUserEmail = null)
     : ICommand<SendMessageResult>;
 
 public class SendConversationMessageCommandHandler(IConversationService conversations)
@@ -15,7 +15,7 @@ public class SendConversationMessageCommandHandler(IConversationService conversa
 {
     public Task<Result<SendMessageResult>> Handle(SendConversationMessageCommand request, CancellationToken cancellationToken) =>
         conversations.SendTextAsync(
-            request.TenantId, request.CurrentUserId, request.IsPrivileged, request.ConversationId, request.Text, cancellationToken);
+            request.TenantId, request.CurrentUserId, request.IsPrivileged, request.ConversationId, request.Text, request.CurrentUserEmail, cancellationToken);
 }
 
 public class SendConversationMessageCommandValidator : AbstractValidator<SendConversationMessageCommand>

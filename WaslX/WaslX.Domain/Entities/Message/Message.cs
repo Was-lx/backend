@@ -16,6 +16,12 @@ namespace WaslX.Domain.Entities
         public MessageStatus Status { get; set; }
         public DateTime Timestamp { get; set; }
 
+        // Set only for Image/Document/Audio/Video/Sticker messages — a permanent (Cloudinary) URL,
+        // not WhatsApp's short-lived media URL. Content holds the caption (if any) for these.
+        public string? MediaUrl { get; set; }
+        public string? MediaMimeType { get; set; }
+        public string? MediaFileName { get; set; }
+
         public Conversation Conversation { get; set; } = null!;
         public User? SenderUser { get; set; }
     }

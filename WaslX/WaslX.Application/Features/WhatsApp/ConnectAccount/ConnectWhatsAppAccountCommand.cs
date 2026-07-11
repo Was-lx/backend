@@ -10,14 +10,14 @@ namespace WaslX.Application.Features.WhatsApp.ConnectAccount;
 /// Completes Facebook Login for Business: swaps the authorization code for a long-lived token,
 /// resolves the WABA/phone number, and upserts the tenant's WhatsApp account.
 /// </summary>
-public record ConnectWhatsAppAccountCommand(int? TenantId, string AuthorizationCode, string? WabaId)
+public record ConnectWhatsAppAccountCommand(int? TenantId, string AuthorizationCode, string? WabaId, string? RedirectUri = null)
     : ICommand<WhatsAppAccountDto>;
 
 public class ConnectWhatsAppAccountCommandHandler(IWhatsAppService whatsAppService)
     : ICommandHandler<ConnectWhatsAppAccountCommand, WhatsAppAccountDto>
 {
     public Task<Result<WhatsAppAccountDto>> Handle(ConnectWhatsAppAccountCommand request, CancellationToken cancellationToken) =>
-        whatsAppService.ConnectAsync(request.TenantId, request.AuthorizationCode, request.WabaId, cancellationToken);
+        whatsAppService.ConnectAsync(request.TenantId, request.AuthorizationCode, request.WabaId, request.RedirectUri, cancellationToken);
 }
 
 public class ConnectWhatsAppAccountCommandValidator : AbstractValidator<ConnectWhatsAppAccountCommand>

@@ -8,7 +8,8 @@ public record ConversationListItemResponse(
     string Status,
     string? LastMessagePreview,
     DateTime? LastMessageAt,
-    int? AssignedUserId);
+    int? AssignedUserId,
+    int UnreadCount);
 
 /// <summary>A single message in a conversation thread (safe projection — no tokens).</summary>
 public record MessageResponse(
@@ -18,7 +19,10 @@ public record MessageResponse(
     string MessageType,
     string Status,
     DateTime Timestamp,
-    int? SenderUserId);
+    int? SenderUserId,
+    string? MediaUrl,
+    string? MediaMimeType,
+    string? MediaFileName);
 
 /// <summary>Cursor-paginated slice of items plus a flag indicating more are available.</summary>
 public record PagedResult<T>(IReadOnlyList<T> Items, bool HasMore);

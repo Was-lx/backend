@@ -9,6 +9,7 @@ namespace WaslX.Domain.SharedEnums
         Audio,
         Video,
         Template,
-        Location
+        Location,
+        Sticker
     }
 }

@@ -16,6 +16,12 @@ namespace WaslX.Domain.Entities
         public ConversationStatus Status { get; set; }
         public ConversationPriority Priority { get; set; }
         public DateTime? LastMessageAt { get; set; }
+        // Read-cursor for the shared inbox: inbound (Customer) messages newer than this are "unread".
+        // Null = never opened, so everything counts as unread until the first mark-read.
+        public DateTime? LastReadAt { get; set; }
+        // Soft-delete: hidden from the inbox and never reused for a new inbound message from the
+        // same customer (a fresh message starts a brand-new conversation instead).
+        public bool IsDeleted { get; set; }
 
         public Tenant Tenant { get; set; } = null!;
         public WhatsAppAccount WhatsAppAccount { get; set; } = null!;

@@ -20,7 +20,7 @@ public class WhatsAppController(ISender sender) : ControllerBase
     [HttpPost("connect")]
     public async Task<IActionResult> Connect([FromBody] ConnectWhatsAppRequest request, CancellationToken cancellationToken)
     {
-        var command = new ConnectWhatsAppAccountCommand(User.GetTenantId(), request.AuthorizationCode, request.WabaId);
+        var command = new ConnectWhatsAppAccountCommand(User.GetTenantId(), request.AuthorizationCode, request.WabaId, request.RedirectUri);
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }
 

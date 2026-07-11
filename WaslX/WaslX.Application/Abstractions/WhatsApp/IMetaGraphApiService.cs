@@ -8,8 +8,12 @@ namespace WaslX.Application.Abstractions.WhatsApp;
 /// </summary>
 public interface IMetaGraphApiService
 {
-    /// <summary>Exchanges a Facebook Login for Business authorization code for a long-lived access token.</summary>
-    Task<Result<MetaTokenResult>> ExchangeCodeForTokenAsync(string code, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Exchanges a Facebook Login for Business authorization code for a long-lived access token.
+    /// Pass <paramref name="redirectUri"/> when the code was obtained via a real browser redirect
+    /// (manual OAuth flow) — it must match the redirect_uri used on the authorization request.
+    /// </summary>
+    Task<Result<MetaTokenResult>> ExchangeCodeForTokenAsync(string code, string? redirectUri = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Resolves the WhatsApp Business Account id, phone number id and display phone number
@@ -21,6 +25,14 @@ public interface IMetaGraphApiService
     /// <summary>Sends a plain text message. Returns the WhatsApp message id (wamid) on success.</summary>
     Task<Result<string>> SendTextMessageAsync(string phoneNumberId, string accessToken, string toPhone, string text, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sends an image/video/document by public link (Cloudinary URL) — WhatsApp fetches it itself,
+    /// no separate media-upload step against the Graph API is needed. Returns the WhatsApp message id.
+    /// </summary>
+    Task<Result<string>> SendMediaMessageAsync(
+        string phoneNumberId, string accessToken, string toPhone, string mediaType, string mediaUrl,
+        string? caption, string? fileName, CancellationToken cancellationToken = default);
+
     /// <summary>Sends a pre-approved template message. Returns the WhatsApp message id (wamid) on success.</summary>
     Task<Result<string>> SendTemplateMessageAsync(string phoneNumberId, string accessToken, string toPhone, string templateName, string languageCode, CancellationToken cancellationToken = default);
 
@@ -29,6 +41,13 @@ public interface IMetaGraphApiService
 
     /// <summary>Marks an inbound message as read.</summary>
     Task<Result> MarkMessageAsReadAsync(string phoneNumberId, string accessToken, string whatsAppMessageId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Subscribes this WABA to the App's webhook (POST {waba-id}/subscribed_apps). Without this,
+    /// Meta never delivers inbound message/status events for the account to our callback URL,
+    /// even when the App-level webhook Callback URL/Verify Token are correctly configured.
+    /// </summary>
+    Task<Result> SubscribeToWebhooksAsync(string wabaId, string accessToken, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Result of a token exchange.</summary>
