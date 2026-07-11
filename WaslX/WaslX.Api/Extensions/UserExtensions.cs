@@ -13,6 +13,11 @@ public static class UserExtensions
         return user.FindFirstValue(ClaimTypes.GivenName);
     }
 
+    public static string? GetEmail(this ClaimsPrincipal user)
+    {
+        return user.FindFirstValue(ClaimTypes.Email);
+    }
+
     public static int? GetTenantId(this ClaimsPrincipal user)
     {
         var value = user.FindFirstValue("tenantId");
