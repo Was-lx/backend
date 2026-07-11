@@ -10,7 +10,7 @@ namespace WaslX.Application.Abstractions.WhatsApp;
 /// </summary>
 public interface IWhatsAppService
 {
-    Task<Result<WhatsAppAccountDto>> ConnectAsync(int? tenantId, string authorizationCode, string? wabaId, CancellationToken cancellationToken = default);
+    Task<Result<WhatsAppAccountDto>> ConnectAsync(int? tenantId, string authorizationCode, string? wabaId, string? redirectUri = null, CancellationToken cancellationToken = default);
     Task<Result<WhatsAppAccountDto>> GetAccountAsync(int? tenantId, CancellationToken cancellationToken = default);
     Task<Result> DisconnectAsync(int? tenantId, CancellationToken cancellationToken = default);
     Task<Result<SendMessageResult>> SendTextAsync(int? tenantId, string toPhone, string text, int? senderUserId = null, CancellationToken cancellationToken = default);
