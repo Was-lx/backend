@@ -97,6 +97,25 @@ internal sealed class WhatsAppService(
             null,
             cancellationToken);
 
+    public Task<Result<SendMessageResult>> SendMediaAsync(
+        int? tenantId, string toPhone, string mediaType, string mediaUrl, string? caption, string? fileName,
+        string mimeType, int? senderUserId = null, CancellationToken cancellationToken = default) =>
+        SendAsync(tenantId, toPhone, MapMediaMessageType(mediaType), caption ?? string.Empty,
+            (account) => graphApi.SendMediaMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, mediaType, mediaUrl, caption, fileName, cancellationToken),
+            senderUserId,
+            cancellationToken,
+            mediaUrl,
+            mimeType,
+            fileName);
+
+    private static MessageType MapMediaMessageType(string mediaType) => mediaType switch
+    {
+        "image" => MessageType.Image,
+        "video" => MessageType.Video,
+        "document" => MessageType.Document,
+        _ => MessageType.Document
+    };
+
     private async Task<Result<SendMessageResult>> SendAsync(
         int? tenantId,
         string toPhone,
@@ -104,7 +123,10 @@ internal sealed class WhatsAppService(
         string content,
         Func<WhatsAppAccount, Task<Result<string>>> send,
         int? senderUserId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? mediaUrl = null,
+        string? mediaMimeType = null,
+        string? mediaFileName = null)
     {
         if (tenantId is not { } tid)
             return Result.Failure<SendMessageResult>(AppErrors.NoTenantContext);
@@ -130,6 +152,9 @@ internal sealed class WhatsAppService(
             SenderType = SenderType.Agent,
             MessageType = messageType,
             Content = content,
+            MediaUrl = mediaUrl,
+            MediaMimeType = mediaMimeType,
+            MediaFileName = mediaFileName,
             WhatsAppMessageId = sendResult.Value,
             Status = MessageStatus.Sent,
             Timestamp = now
@@ -163,8 +188,9 @@ internal sealed class WhatsAppService(
 
     internal static async Task<Conversation> FindOrCreateConversationAsync(ApplicationDbContext db, int tenantId, int whatsAppAccountId, Customer customer, CancellationToken cancellationToken)
     {
+        // A soft-deleted conversation is never reused — a new message from this customer starts fresh.
         var conversation = await db.Conversations
-            .Where(c => c.TenantId == tenantId && c.CustomerId == customer.Id && c.Status != ConversationStatus.Resolved)
+            .Where(c => c.TenantId == tenantId && c.CustomerId == customer.Id && c.Status != ConversationStatus.Resolved && !c.IsDeleted)
             .OrderByDescending(c => c.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
