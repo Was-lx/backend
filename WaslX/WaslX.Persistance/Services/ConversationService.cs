@@ -81,7 +81,7 @@ internal sealed class ConversationService(ApplicationDbContext db, IWhatsAppServ
     }
 
     public async Task<Result<SendMessageResult>> SendTextAsync(
-        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string text, CancellationToken cancellationToken = default)
+        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string text, string? currentUserEmail = null, CancellationToken cancellationToken = default)
     {
         var access = await ResolveConversationAsync(tenantId, currentUserId, isPrivileged, conversationId, cancellationToken);
         if (access.IsFailure)
@@ -95,7 +95,16 @@ internal sealed class ConversationService(ApplicationDbContext db, IWhatsAppServ
         if (string.IsNullOrWhiteSpace(phone))
             return Result.Failure<SendMessageResult>(AppErrors.ConversationNotFound);
 
-        return await whatsApp.SendTextAsync(tenantId, phone, text, currentUserId, cancellationToken);
+        // currentUserId is the Identity (GUID) subject mis-parsed as int (see ConversationsController);
+        // resolve the real domain user id by email so we never insert a Message.SenderUserId that
+        // doesn't exist in the users table (FK violation).
+        int? senderUserId = string.IsNullOrEmpty(currentUserEmail)
+            ? null
+            : await db.Users.Where(u => u.TenantId == tenantId && u.Email == currentUserEmail)
+                .Select(u => (int?)u.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+        return await whatsApp.SendTextAsync(tenantId, phone, text, senderUserId, cancellationToken);
     }
 
     /// <summary>Tenant-scopes and RBAC-checks a conversation: managers/admins may access any; agents only their own.</summary>
