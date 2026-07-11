@@ -36,4 +36,9 @@ public static class AppErrors
     // Conversations / inbox
     public static readonly Error ConversationNotFound = new("Conversation.NotFound", "Conversation not found", 404);
     public static readonly Error ConversationAccessDenied = new("Conversation.AccessDenied", "You do not have access to this conversation", 403);
+
+    // Media
+    public static readonly Error MediaUploadFailed = new("Media.UploadFailed", "Could not upload the file", 502);
+    public static readonly Error MediaFileRequired = new("Media.FileRequired", "A file is required", 400);
+    public static readonly Error MediaUnsupportedType = new("Media.UnsupportedType", "This file type is not supported", 400);
 }
