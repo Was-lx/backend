@@ -3,9 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WaslX.Api.Contracts;
 using WaslX.Api.Extensions;
+using WaslX.Application.Features.Conversations.DeleteConversation;
 using WaslX.Application.Features.Conversations.GetConversationMessages;
 using WaslX.Application.Features.Conversations.GetConversations;
+using WaslX.Application.Features.Conversations.MarkConversationRead;
+using WaslX.Application.Features.Conversations.SendConversationMedia;
 using WaslX.Application.Features.Conversations.SendConversationMessage;
+using WaslX.Application.Features.WhatsApp.Dtos;
+using WaslX.Domain.Results;
 
 namespace WaslX.Api.Controllers;
 
@@ -35,6 +40,42 @@ public class ConversationsController(ISender sender) : ControllerBase
     public async Task<IActionResult> SendMessage(int id, [FromBody] SendConversationMessageRequest request, CancellationToken cancellationToken)
     {
         var command = new SendConversationMessageCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Text, User.GetEmail());
+        return (await sender.Send(command, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Uploads a file (image/video/document) and sends it as a reply within a conversation.</summary>
+    [HttpPost("{id:int}/media")]
+    [RequestSizeLimit(25_000_000)]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> SendMedia(int id, [FromForm] IFormFile? file, [FromForm] string? caption, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+            return Result.Failure<SendMessageResult>(AppErrors.MediaFileRequired).ToActionResult();
+
+        await using var stream = file.OpenReadStream();
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer, cancellationToken);
+
+        var contentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType;
+        var command = new SendConversationMediaCommand(
+            User.GetTenantId(), CurrentUserId(), IsPrivileged(), id,
+            buffer.ToArray(), file.FileName, contentType, caption, User.GetEmail());
+        return (await sender.Send(command, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Marks a conversation read (clears its unread count). Internal only — no WhatsApp read receipt is sent.</summary>
+    [HttpPost("{id:int}/read")]
+    public async Task<IActionResult> MarkRead(int id, CancellationToken cancellationToken)
+    {
+        var command = new MarkConversationReadCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id);
+        return (await sender.Send(command, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Soft-deletes a conversation (hidden from the inbox; a future inbound message starts a new one).</summary>
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var command = new DeleteConversationCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id);
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }
 
