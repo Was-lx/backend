@@ -14,12 +14,12 @@ internal sealed class WhatsAppService(
     IMetaGraphApiService graphApi,
     ILogger<WhatsAppService> logger) : IWhatsAppService
 {
-    public async Task<Result<WhatsAppAccountDto>> ConnectAsync(int? tenantId, string authorizationCode, string? wabaId, CancellationToken cancellationToken = default)
+    public async Task<Result<WhatsAppAccountDto>> ConnectAsync(int? tenantId, string authorizationCode, string? wabaId, string? redirectUri = null, CancellationToken cancellationToken = default)
     {
         if (tenantId is not { } tid)
             return Result.Failure<WhatsAppAccountDto>(AppErrors.NoTenantContext);
 
-        var tokenResult = await graphApi.ExchangeCodeForTokenAsync(authorizationCode, cancellationToken);
+        var tokenResult = await graphApi.ExchangeCodeForTokenAsync(authorizationCode, redirectUri, cancellationToken);
         if (tokenResult.IsFailure)
             return Result.Failure<WhatsAppAccountDto>(tokenResult.Error);
 
@@ -28,6 +28,12 @@ internal sealed class WhatsAppService(
             return Result.Failure<WhatsAppAccountDto>(infoResult.Error);
 
         var info = infoResult.Value;
+
+        // Without this, Meta never delivers inbound message/status webhooks for this WABA to our
+        // callback URL, even when the App-level Callback URL/Verify Token are correctly configured.
+        var subscribeResult = await graphApi.SubscribeToWebhooksAsync(info.WhatsAppBusinessAccountId, tokenResult.Value.AccessToken, cancellationToken);
+        if (subscribeResult.IsFailure)
+            return Result.Failure<WhatsAppAccountDto>(subscribeResult.Error);
 
         // Upsert: one WhatsApp account per tenant.
         var account = await db.WhatsAppAccounts.FirstOrDefaultAsync(x => x.TenantId == tid, cancellationToken);
