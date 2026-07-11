@@ -34,7 +34,7 @@ public class ConversationsController(ISender sender) : ControllerBase
     [HttpPost("{id:int}/messages")]
     public async Task<IActionResult> SendMessage(int id, [FromBody] SendConversationMessageRequest request, CancellationToken cancellationToken)
     {
-        var command = new SendConversationMessageCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Text);
+        var command = new SendConversationMessageCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Text, User.GetEmail());
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }
 
