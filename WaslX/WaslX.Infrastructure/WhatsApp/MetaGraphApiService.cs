@@ -118,6 +118,27 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
         return await PostMessageAsync(phoneNumberId, accessToken, payload, cancellationToken);
     }
 
+    public async Task<Result<string>> SendMediaMessageAsync(
+        string phoneNumberId, string accessToken, string toPhone, string mediaType, string mediaUrl,
+        string? caption, string? fileName, CancellationToken cancellationToken = default)
+    {
+        object mediaObject = mediaType switch
+        {
+            "document" => new { link = mediaUrl, caption, filename = fileName },
+            _ => new { link = mediaUrl, caption }
+        };
+
+        var payload = new Dictionary<string, object?>
+        {
+            ["messaging_product"] = "whatsapp",
+            ["recipient_type"] = "individual",
+            ["to"] = toPhone,
+            ["type"] = mediaType,
+            [mediaType] = mediaObject
+        };
+        return await PostMessageAsync(phoneNumberId, accessToken, payload, cancellationToken);
+    }
+
     public async Task<Result<string>> SendTemplateMessageAsync(string phoneNumberId, string accessToken, string toPhone, string templateName, string languageCode, CancellationToken cancellationToken = default)
     {
         var payload = new
