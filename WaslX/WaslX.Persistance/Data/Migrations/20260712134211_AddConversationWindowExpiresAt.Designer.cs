@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WaslX.Persistance.Data;
 
@@ -11,9 +12,11 @@ using WaslX.Persistance.Data;
 namespace WaslX.Persistance.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260712134211_AddConversationWindowExpiresAt")]
+    partial class AddConversationWindowExpiresAt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2042,8 +2045,8 @@ namespace WaslX.Persistance.Data.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "SUPERADMIN@WASLX.COM",
                             NormalizedUserName = "SUPERADMIN@WASLX.COM",
-							PasswordHash = "AQAAAAIAAYagAAAAEOY3ssyXaUar2EpfeJLfvdpg8JG/o2/gwoyyTt+mhje7zjWpEgH5Jgq5mzwFB50MQQ==",
-							PhoneNumberConfirmed = false,
+                            PasswordHash = "AQAAAAIAAYagAAAAEPbUKNUN1pjuPZqHvgIlYkPCkRdZ8sOdNRoaq2OeNl7gJ0zySgaNVmKrq6q2OK9Jow==",
+                            PhoneNumberConfirmed = false,
                             SecurityStamp = "f6a7b8c9-d0e1-4f2a-b3c4-5d6e7f809102",
                             TwoFactorEnabled = false,
                             UserName = "superadmin@waslx.com"
