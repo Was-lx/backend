@@ -38,6 +38,11 @@ public record ConversationDetailResponse(
     DateTime CreatedAt,
     DateTime? LastMessageAt,
     DateTime? LastInboundAt,
+    // WhatsApp 24-hour customer-service window. WindowExpiresAt = the customer's last inbound + 24h
+    // (null = never opened → closed). IsWindowOpen is the server-derived open/closed verdict; the SPA
+    // mirrors it to lock free text and show a live countdown.
+    DateTime? WindowExpiresAt,
+    bool IsWindowOpen,
     int MessageCount);
 
 /// <summary>Returned after a status change: the new status plus the moves now valid from it.</summary>

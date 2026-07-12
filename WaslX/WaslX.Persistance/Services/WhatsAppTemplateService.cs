@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Application.Features.WhatsApp.Templates.Dtos;
+using WaslX.Domain.Entities;
 using WaslX.Domain.Results;
 using WaslX.Domain.SharedEnums;
 using WaslX.Persistance.Data;
@@ -16,12 +17,18 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
         if (accountResult.IsFailure)
             return Result.Failure<IReadOnlyList<TemplateDto>>(accountResult.Error);
 
-        var (wabaId, accessToken) = accountResult.Value;
+        var (tid, wabaId, accessToken) = accountResult.Value;
         var listResult = await graphApi.ListTemplatesAsync(wabaId, accessToken, status, cancellationToken);
         if (listResult.IsFailure)
             return Result.Failure<IReadOnlyList<TemplateDto>>(listResult.Error);
 
-        var templates = listResult.Value.Select(Map).ToList();
+        // Merge live Meta data with the locally-stored review metadata (reason, submitted category,
+        // allow_category_change, reviewed_at) by Meta template id.
+        var reviews = await db.TemplateReviews
+            .Where(r => r.TenantId == tid)
+            .ToDictionaryAsync(r => r.MetaTemplateId, cancellationToken);
+
+        var templates = listResult.Value.Select(t => Map(t, reviews.GetValueOrDefault(t.Id))).ToList();
         return Result.Success<IReadOnlyList<TemplateDto>>(templates);
     }
 
@@ -31,12 +38,29 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
         if (accountResult.IsFailure)
             return Result.Failure<TemplateCreateResultDto>(accountResult.Error);
 
-        var (wabaId, accessToken) = accountResult.Value;
+        var (tid, wabaId, accessToken) = accountResult.Value;
         var payload = BuildCreatePayload(input);
 
         var result = await graphApi.CreateTemplateAsync(wabaId, accessToken, payload, cancellationToken);
         if (result.IsFailure)
             return Result.Failure<TemplateCreateResultDto>(result.Error);
+
+        // Persist the create-time audit row: Meta never echoes back the category we submitted nor
+        // our allow_category_change choice, so we keep them locally to power the "requested vs final"
+        // category comparison later (once the review webhook lands).
+        var review = new TemplateReview
+        {
+            TenantId = tid,
+            MetaTemplateId = result.Value.Id,
+            MessageTemplateName = input.Name.Trim().ToLowerInvariant(),
+            Language = input.Language,
+            Status = result.Value.Status,
+            SubmittedCategory = input.Category.ToUpperInvariant(),
+            AllowCategoryChange = input.AllowCategoryChange,
+            ReviewedAt = null
+        };
+        await db.TemplateReviews.AddAsync(review, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
         return Result.Success(new TemplateCreateResultDto(result.Value.Id, result.Value.Status, result.Value.Category));
     }
@@ -96,6 +120,7 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
             name = input.Name.Trim().ToLowerInvariant(),
             language = input.Language,
             category,
+            allow_category_change = input.AllowCategoryChange,
             components
         };
     }
@@ -111,7 +136,7 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
         return max;
     }
 
-    private static TemplateDto Map(MetaTemplate t)
+    private static TemplateDto Map(MetaTemplate t, TemplateReview? review)
     {
         string? Text(string type) => t.Components.FirstOrDefault(c => c.Type.Equals(type, StringComparison.OrdinalIgnoreCase))?.Text;
         var buttons = t.Components
@@ -119,23 +144,39 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
             .Select(b => new TemplateButtonDto(b.Type, b.Text, b.Url, b.PhoneNumber))
             .ToList() ?? [];
 
-        return new TemplateDto(t.Id, t.Name, t.Language, t.Category, t.Status,
-            Text("HEADER"), Text("BODY"), Text("FOOTER"), buttons);
+        // Live Meta category is the authoritative "final" category. The submitted category is the
+        // one we stored at create time; when they differ, Meta changed it during review.
+        var finalCategory = t.Category;
+        var submittedCategory = string.IsNullOrEmpty(review?.SubmittedCategory) ? null : review.SubmittedCategory;
+        var changedByMeta = submittedCategory is not null
+            && !string.Equals(submittedCategory, finalCategory, StringComparison.OrdinalIgnoreCase);
+
+        return new TemplateDto(
+            t.Id, t.Name, t.Language, t.Category, t.Status,
+            Text("HEADER"), Text("BODY"), Text("FOOTER"), buttons,
+            ReasonCode: review?.ReasonCode,
+            ReasonText: review?.ReasonText,
+            MetaNotes: review?.MetaNotes,
+            SubmittedCategory: submittedCategory,
+            FinalCategory: finalCategory,
+            AllowCategoryChange: review?.AllowCategoryChange ?? false,
+            ChangedByMeta: changedByMeta,
+            ReviewedAt: review?.ReviewedAt);
     }
 
-    /// <summary>Resolves the tenant's connected WABA id + access token, or a clear failure.</summary>
-    private async Task<Result<(string WabaId, string AccessToken)>> ResolveAccountAsync(int? tenantId, CancellationToken cancellationToken)
+    /// <summary>Resolves the tenant's connected account: tenant id + WABA id + access token, or a clear failure.</summary>
+    private async Task<Result<(int TenantId, string WabaId, string AccessToken)>> ResolveAccountAsync(int? tenantId, CancellationToken cancellationToken)
     {
         if (tenantId is not { } tid)
-            return Result.Failure<(string, string)>(AppErrors.NoTenantContext);
+            return Result.Failure<(int, string, string)>(AppErrors.NoTenantContext);
 
         var account = await db.WhatsAppAccounts.AsNoTracking().FirstOrDefaultAsync(x => x.TenantId == tid, cancellationToken);
         if (account is null)
-            return Result.Failure<(string, string)>(AppErrors.WhatsAppAccountNotFound);
+            return Result.Failure<(int, string, string)>(AppErrors.WhatsAppAccountNotFound);
         if (account.Status != WhatsAppAccountStatus.Connected)
-            return Result.Failure<(string, string)>(AppErrors.WhatsAppNotConnected);
+            return Result.Failure<(int, string, string)>(AppErrors.WhatsAppNotConnected);
 
-        return Result.Success((account.whatsAppBusinessAccountId, account.AccessToken));
+        return Result.Success((tid, account.whatsAppBusinessAccountId, account.AccessToken));
     }
 
     [GeneratedRegex(@"\{\{(\d+)\}\}")]

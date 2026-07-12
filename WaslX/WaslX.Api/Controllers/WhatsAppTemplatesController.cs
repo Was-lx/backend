@@ -35,7 +35,7 @@ public class WhatsAppTemplatesController(ISender sender) : ControllerBase
 
         var command = new CreateTemplateCommand(
             User.GetTenantId(), request.Name, request.Category, request.Language,
-            request.HeaderText, request.BodyText, request.FooterText, buttons);
+            request.HeaderText, request.BodyText, request.FooterText, buttons, request.AllowCategoryChange);
 
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }

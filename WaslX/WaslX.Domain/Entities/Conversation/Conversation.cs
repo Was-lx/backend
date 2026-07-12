@@ -16,6 +16,17 @@ namespace WaslX.Domain.Entities
         public ConversationStatus Status { get; set; }
         public ConversationPriority Priority { get; set; }
         public DateTime? LastMessageAt { get; set; }
+
+        // ── WhatsApp 24-hour customer-service window ──
+        // Timestamp of the last INBOUND (customer) message. Every customer reply resets this, which
+        // in turn resets ServiceWindowExpiresAt. Agent/template sends never touch it. NULL = the
+        // customer has never messaged, so the window is closed (free text blocked, templates only).
+        public DateTime? LastCustomerMessageAt { get; set; }
+
+        // LastCustomerMessageAt + 24 hours. When Now >= this, the conversation window is Closed and
+        // only approved template messages may be sent (enforced in WhatsAppService.SendAsync).
+        public DateTime? ServiceWindowExpiresAt { get; set; }
+
         // Read-cursor for the shared inbox: inbound (Customer) messages newer than this are "unread".
         // Null = never opened, so everything counts as unread until the first mark-read.
         public DateTime? LastReadAt { get; set; }

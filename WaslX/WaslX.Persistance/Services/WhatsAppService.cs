@@ -140,6 +140,24 @@ internal sealed class WhatsAppService(
         if (account.Status != WhatsAppAccountStatus.Connected)
             return Result.Failure<SendMessageResult>(AppErrors.WhatsAppNotConnected);
 
+        // ── 24-hour customer-service window guard ── Templates may ALWAYS be sent (Meta allows them
+        // outside the window to re-engage). Every other message type (text/image/video/audio/document)
+        // is blocked once the window expires — and that must happen BEFORE we call Meta, so a closed
+        // window never burns a send. The window is anchored on the customer's last inbound message:
+        // if no open conversation exists (customer never messaged) the window is closed by definition.
+        if (messageType != MessageType.Template)
+        {
+            var windowExpiresAt = await db.Conversations
+                .Where(c => c.TenantId == tid && c.Customer.PhoneNumber == toPhone
+                    && c.WhatsAppAccountId == account.Id && c.Status != ConversationStatus.Resolved && !c.IsDeleted)
+                .OrderByDescending(c => c.Id)
+                .Select(c => c.ServiceWindowExpiresAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (windowExpiresAt is null || DateTime.UtcNow >= windowExpiresAt)
+                return Result.Failure<SendMessageResult>(AppErrors.ServiceWindowClosed);
+        }
+
         var sendResult = await send(account);
         if (sendResult.IsFailure)
             return Result.Failure<SendMessageResult>(sendResult.Error);

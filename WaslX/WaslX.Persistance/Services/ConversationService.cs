@@ -115,9 +115,12 @@ internal sealed class ConversationService(
                 Tags = c.ConversationTags.Select(t => t.Tag.Name).ToList(),
                 c.CreatedAt,
                 c.LastMessageAt,
-                LastInboundAt = db.Messages
+                // Prefer the persisted window anchor (set on every inbound); fall back to deriving it
+                // from message history for conversations created before the window migration ran.
+                LastInboundAt = c.LastCustomerMessageAt ?? db.Messages
                     .Where(m => m.ConversationId == c.Id && m.SenderType == SenderType.Customer)
                     .Max(m => (DateTime?)m.Timestamp),
+                WindowExpiresAt = c.ServiceWindowExpiresAt,
                 MessageCount = db.Messages.Count(m => m.ConversationId == c.Id)
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -126,10 +129,12 @@ internal sealed class ConversationService(
             return Result.Failure<ConversationDetailResponse>(AppErrors.ConversationNotFound);
 
         var allowed = ConversationStatusTransitions.AllowedNext(detail.Status).Select(s => s.ToString()).ToList();
+        var isWindowOpen = detail.WindowExpiresAt is not null && DateTime.UtcNow < detail.WindowExpiresAt;
         return Result.Success(new ConversationDetailResponse(
             detail.Id, detail.Name, detail.PhoneNumber, detail.VipFlag, detail.Status.ToString(),
             allowed, detail.AssignedUserId, detail.AssignedUserName, detail.Tags,
-            detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt, detail.MessageCount));
+            detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt,
+            detail.WindowExpiresAt, isWindowOpen, detail.MessageCount));
     }
 
     public async Task<Result<ConversationStatusResponse>> ChangeStatusAsync(

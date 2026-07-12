@@ -16,6 +16,7 @@ public record CreateTemplateRequest(
     string? HeaderText,
     string? BodyText,
     string? FooterText,
-    IReadOnlyList<CreateTemplateButtonRequest>? Buttons = null);
+    IReadOnlyList<CreateTemplateButtonRequest>? Buttons = null,
+    bool AllowCategoryChange = true);
 
 public record CreateTemplateButtonRequest(string Type, string Text, string? Url);

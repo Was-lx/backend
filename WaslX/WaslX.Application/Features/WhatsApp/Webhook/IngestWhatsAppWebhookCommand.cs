@@ -42,17 +42,22 @@ public class IngestWhatsAppWebhookCommandHandler(IUnitOfWork unitOfWork)
         try
         {
             using var doc = JsonDocument.Parse(rawPayload);
-            var value = doc.RootElement
+            var change = doc.RootElement
                 .GetProperty("entry")[0]
-                .GetProperty("changes")[0]
-                .GetProperty("value");
+                .GetProperty("changes")[0];
+
+            var value = change.GetProperty("value");
 
             string? phoneNumberId = value.TryGetProperty("metadata", out var metadata) &&
                                     metadata.TryGetProperty("phone_number_id", out var pid)
                 ? pid.GetString()
                 : null;
 
-            var eventType = value.TryGetProperty("messages", out _) ? "message"
+            // message_template_status_update is a field-based event (no messages/statuses array),
+            // so route on the change's field first, then fall back to the value's child arrays.
+            var field = change.TryGetProperty("field", out var fieldEl) ? fieldEl.GetString() : null;
+            var eventType = field == "message_template_status_update" ? "template_status"
+                : value.TryGetProperty("messages", out _) ? "message"
                 : value.TryGetProperty("statuses", out _) ? "status"
                 : "unknown";
 

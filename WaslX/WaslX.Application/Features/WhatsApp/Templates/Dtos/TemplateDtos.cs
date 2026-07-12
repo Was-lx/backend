@@ -10,7 +10,15 @@ public record TemplateDto(
     string? HeaderText,
     string? BodyText,
     string? FooterText,
-    IReadOnlyList<TemplateButtonDto> Buttons);
+    IReadOnlyList<TemplateButtonDto> Buttons,
+    string? ReasonCode,
+    string? ReasonText,
+    string? MetaNotes,
+    string? SubmittedCategory,
+    string? FinalCategory,
+    bool AllowCategoryChange,
+    bool ChangedByMeta,
+    DateTime? ReviewedAt);
 
 /// <summary>A template button (QUICK_REPLY/URL/PHONE_NUMBER/COPY_CODE/OTP).</summary>
 public record TemplateButtonDto(string Type, string? Text, string? Url, string? PhoneNumber);
@@ -26,7 +34,8 @@ public record CreateTemplateInput(
     string? HeaderText,
     string? BodyText,
     string? FooterText,
-    IReadOnlyList<TemplateButtonInput> Buttons);
+    IReadOnlyList<TemplateButtonInput> Buttons,
+    bool AllowCategoryChange = true);
 
 /// <summary>A button to add when creating a template.</summary>
 public record TemplateButtonInput(string Type, string Text, string? Url);

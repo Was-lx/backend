@@ -18,6 +18,9 @@ public static class AppErrors
     // Onboarding
     public static readonly Error OnboardingInvalidStep = new("Onboarding.InvalidStep", "Invalid onboarding step", 400);
 
+    // Conversation 24-hour window
+    public static readonly Error ServiceWindowClosed = new("Conversation.ServiceWindowClosed", "The 24-hour customer service window has expired. Only approved templates can be sent.", 400);
+
     // Billing / subscription (simulated)
     public static readonly Error TrialAlreadyUsed = new("Billing.TrialAlreadyUsed", "This workspace has already used its trial", 400);
     public static readonly Error PaymentDeclined = new("Billing.PaymentDeclined", "The card was declined", 402);

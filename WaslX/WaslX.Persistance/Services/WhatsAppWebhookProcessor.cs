@@ -51,8 +51,24 @@ internal sealed class WhatsAppWebhookProcessor(
 
                     foreach (var change in changes.EnumerateArray())
                     {
-                        if (change.TryGetProperty("value", out var value))
-                            await ProcessValueAsync(value, cancellationToken);
+                        if (!change.TryGetProperty("field", out var fieldEl) || fieldEl.ValueKind != JsonValueKind.String)
+                        {
+                            // Legacy/default: route by the value's child arrays (inbound messages + statuses).
+                            if (change.TryGetProperty("value", out var value))
+                                await ProcessValueAsync(value, cancellationToken);
+                            continue;
+                        }
+
+                        var field = fieldEl.GetString();
+                        if (field == "message_template_status_update" && change.TryGetProperty("value", out var tplValue))
+                        {
+                            await HandleTemplateStatusUpdateAsync(entry, tplValue, cancellationToken);
+                            continue;
+                        }
+
+                        // messages + statuses both arrive under value (no field-based routing needed).
+                        if (change.TryGetProperty("value", out var msgValue))
+                            await ProcessValueAsync(msgValue, cancellationToken);
                     }
                 }
             }
@@ -141,6 +157,11 @@ internal sealed class WhatsAppWebhookProcessor(
         await db.Messages.AddAsync(inbound, cancellationToken);
 
         conversation.LastMessageAt = timestamp;
+        // ── 24-hour customer-service window ── Every customer message (re)opens the window and
+        // resets the expiry to this message's timestamp + 24h. Agent/template sends never touch
+        // these fields, so the window is ALWAYS anchored on the last CUSTOMER message.
+        conversation.LastCustomerMessageAt = timestamp;
+        conversation.ServiceWindowExpiresAt = timestamp.AddHours(24);
         // Auto-reopen: a new inbound on a Resolved conversation moves it back to Reopened
         // (one of only three automatic transitions; the rest are manual.
         var reopened = conversation.Status == ConversationStatus.Resolved;
@@ -178,6 +199,81 @@ internal sealed class WhatsAppWebhookProcessor(
         var tenantId = await db.Conversations.Where(c => c.Id == message.ConversationId)
             .Select(c => c.TenantId).FirstOrDefaultAsync(cancellationToken);
         await notifier.MessageStatusChangedAsync(tenantId, message.ConversationId, message.Id, message.Status.ToString(), cancellationToken);
+    }
+
+    /// <summary>
+    /// Processes a <c>message_template_status_update</c> webhook: upserts the local TemplateReview
+    /// row with Meta's review decision (status + rejection reason). The tenant is resolved via the
+    /// entry's WhatsApp Business Account id (these events carry no phone_number_id, unlike inbound
+    /// messages). Best-effort: logs and never throws, mirroring the inbound handler.
+    /// </summary>
+    private async Task HandleTemplateStatusUpdateAsync(JsonElement entry, JsonElement value, CancellationToken cancellationToken)
+    {
+        // entry.id = the WhatsApp Business Account id that owns the template.
+        var wabaId = entry.TryGetProperty("id", out var entryIdEl) ? entryIdEl.GetString() : null;
+        if (string.IsNullOrWhiteSpace(wabaId))
+            return;
+
+        var account = await db.WhatsAppAccounts.FirstOrDefaultAsync(x => x.whatsAppBusinessAccountId == wabaId, cancellationToken);
+        if (account is null)
+        {
+            logger.LogWarning("Template status update: no WhatsApp account matches WABA id {WabaId}", wabaId);
+            return;
+        }
+
+        if (!value.TryGetProperty("message_template_status_update", out var update))
+            return;
+
+        var metaTemplateId = update.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
+        if (string.IsNullOrWhiteSpace(metaTemplateId))
+            return;
+
+        var templateName = update.TryGetProperty("message_template_name", out var nameEl) ? nameEl.GetString() : null;
+        var language = update.TryGetProperty("message_template_language", out var langEl) ? langEl.GetString() : null;
+        var newStatus = update.TryGetProperty("message_template_status", out var stEl) ? stEl.GetString() : null;
+        if (string.IsNullOrWhiteSpace(newStatus))
+            return;
+
+        // Meta only sends a "reason" on REJECTED; absent otherwise. Never invent a reason.
+        string? reason = update.TryGetProperty("reason", out var reasonEl) && reasonEl.ValueKind == JsonValueKind.String
+            ? reasonEl.GetString()
+            : null;
+
+        var review = await db.TemplateReviews
+            .FirstOrDefaultAsync(r => r.TenantId == account.TenantId && r.MetaTemplateId == metaTemplateId, cancellationToken);
+
+        var now = DateTime.UtcNow;
+        if (review is null)
+        {
+            // Webhook arrived before we persisted the create-audit row (or template was created
+            // outside the app). Create a minimal row with the data Meta gave us.
+            review = new TemplateReview
+            {
+                TenantId = account.TenantId,
+                MetaTemplateId = metaTemplateId,
+                MessageTemplateName = templateName ?? string.Empty,
+                Language = language,
+                Status = newStatus,
+                ReasonText = reason,
+                SubmittedCategory = string.Empty,
+                AllowCategoryChange = false,
+                ReviewedAt = newStatus is "APPROVED" or "REJECTED" ? now : null
+            };
+            await db.TemplateReviews.AddAsync(review, cancellationToken);
+        }
+        else
+        {
+            review.Status = newStatus;
+            // Update reason only when Meta provides one (null = keep prior, or clear on non-rejected).
+            review.ReasonText = newStatus == "REJECTED" ? reason : null;
+            review.ReasonCode = newStatus == "REJECTED" ? review.ReasonCode : null;
+            review.ReviewedAt = newStatus is "APPROVED" or "REJECTED" ? now : review.ReviewedAt;
+            review.UpdatedAt = now;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Template status update: template {TemplateId} → {Status} (reason={Reason})",
+            metaTemplateId, newStatus, reason ?? "none");
     }
 
     /// <summary>

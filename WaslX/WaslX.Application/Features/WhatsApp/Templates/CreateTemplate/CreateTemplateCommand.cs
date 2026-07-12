@@ -15,14 +15,15 @@ public record CreateTemplateCommand(
     string? HeaderText,
     string? BodyText,
     string? FooterText,
-    IReadOnlyList<TemplateButtonInput> Buttons) : ICommand<TemplateCreateResultDto>;
+    IReadOnlyList<TemplateButtonInput> Buttons,
+    bool AllowCategoryChange = true) : ICommand<TemplateCreateResultDto>;
 
 public class CreateTemplateCommandHandler(IWhatsAppTemplateService templates) : ICommandHandler<CreateTemplateCommand, TemplateCreateResultDto>
 {
     public Task<Result<TemplateCreateResultDto>> Handle(CreateTemplateCommand request, CancellationToken cancellationToken) =>
         templates.CreateTemplateAsync(
             request.TenantId,
-            new CreateTemplateInput(request.Name, request.Category, request.Language, request.HeaderText, request.BodyText, request.FooterText, request.Buttons ?? []),
+            new CreateTemplateInput(request.Name, request.Category, request.Language, request.HeaderText, request.BodyText, request.FooterText, request.Buttons ?? [], request.AllowCategoryChange),
             cancellationToken);
 }
 
