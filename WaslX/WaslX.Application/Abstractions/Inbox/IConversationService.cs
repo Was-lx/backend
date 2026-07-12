@@ -18,6 +18,14 @@ public interface IConversationService
     Task<Result<PagedResult<MessageResponse>>> GetMessagesAsync(
         int? tenantId, int currentUserId, bool isPrivileged, int conversationId, int? before, int pageSize, CancellationToken cancellationToken = default);
 
+    /// <summary>Rich detail for the customer-context panel + status controls (customer, tags, assignment, 24h-window anchor).</summary>
+    Task<Result<ConversationDetailResponse>> GetDetailAsync(
+        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, CancellationToken cancellationToken = default);
+
+    /// <summary>Applies a manual lifecycle transition, rejecting any move not permitted from the current status.</summary>
+    Task<Result<ConversationStatusResponse>> ChangeStatusAsync(
+        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string targetStatus, CancellationToken cancellationToken = default);
+
     /// <param name="currentUserEmail">
     /// Used to resolve the sending domain <c>User.Id</c> for message attribution, since the JWT's
     /// subject is the Identity (GUID) user id, not the domain int id (see <paramref name="currentUserId"/>).

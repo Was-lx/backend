@@ -43,7 +43,7 @@ public class WhatsAppController(ISender sender) : ControllerBase
     [HttpPost("messages/template")]
     public async Task<IActionResult> SendTemplate([FromBody] SendWhatsAppTemplateRequest request, CancellationToken cancellationToken)
     {
-        var command = new SendTemplateMessageCommand(User.GetTenantId(), request.ToPhone, request.TemplateName, request.LanguageCode);
+        var command = new SendTemplateMessageCommand(User.GetTenantId(), request.ToPhone, request.TemplateName, request.LanguageCode, request.Variables);
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }
 }

@@ -24,5 +24,24 @@ public record MessageResponse(
     string? MediaMimeType,
     string? MediaFileName);
 
+/// <summary>Rich detail for the customer-context panel + status controls (FE-2.8 / FE-2.12).</summary>
+public record ConversationDetailResponse(
+    int Id,
+    string CustomerName,
+    string CustomerPhone,
+    bool CustomerVip,
+    string Status,
+    IReadOnlyList<string> AllowedTransitions,
+    int? AssignedUserId,
+    string? AssignedUserName,
+    IReadOnlyList<string> Tags,
+    DateTime CreatedAt,
+    DateTime? LastMessageAt,
+    DateTime? LastInboundAt,
+    int MessageCount);
+
+/// <summary>Returned after a status change: the new status plus the moves now valid from it.</summary>
+public record ConversationStatusResponse(int Id, string Status, IReadOnlyList<string> AllowedTransitions);
+
 /// <summary>Cursor-paginated slice of items plus a flag indicating more are available.</summary>
 public record PagedResult<T>(IReadOnlyList<T> Items, bool HasMore);

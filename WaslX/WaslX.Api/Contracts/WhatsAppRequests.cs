@@ -5,4 +5,17 @@ public record ConnectWhatsAppRequest(string AuthorizationCode, string? WabaId, s
 
 public record SendWhatsAppTextRequest(string ToPhone, string Text);
 
-public record SendWhatsAppTemplateRequest(string ToPhone, string TemplateName, string LanguageCode);
+/// <summary><see cref="Variables"/> fill the template BODY placeholders ({{1}}, {{2}}, … in order).</summary>
+public record SendWhatsAppTemplateRequest(string ToPhone, string TemplateName, string LanguageCode, IReadOnlyList<string>? Variables = null);
+
+/// <summary>Body for creating a message template on Meta.</summary>
+public record CreateTemplateRequest(
+    string Name,
+    string Category,
+    string Language,
+    string? HeaderText,
+    string? BodyText,
+    string? FooterText,
+    IReadOnlyList<CreateTemplateButtonRequest>? Buttons = null);
+
+public record CreateTemplateButtonRequest(string Type, string Text, string? Url);
