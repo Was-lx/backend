@@ -23,4 +23,9 @@ public static class UserExtensions
         var value = user.FindFirstValue("tenantId");
         return int.TryParse(value, out var tenantId) ? tenantId : null;
     }
+
+    public static string? GetRole(this ClaimsPrincipal user)
+    {
+        return user.FindFirstValue(ClaimTypes.Role);
+    }
 }

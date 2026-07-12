@@ -27,22 +27,17 @@ internal sealed class NoteService(ApplicationDbContext db, IInboxRealtimeNotifie
     }
 
     public async Task<Result<NoteDto>> AddNoteAsync(
-        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string content, string? currentUserEmail, CancellationToken cancellationToken = default)
+        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string content, string authorName, string roleName, string? currentUserEmail, CancellationToken cancellationToken = default)
     {
         var access = await ResolveConversationAsync(tenantId, currentUserId, isPrivileged, conversationId, cancellationToken);
         if (access.IsFailure)
             return Result.Failure<NoteDto>(access.Error);
 
-        // InternalNote.UserId is a non-nullable FK, so we must attribute the note to a real domain
-        // user. The JWT subject is the Identity GUID, not the domain int id — resolve it by email.
-        var author = string.IsNullOrEmpty(currentUserEmail)
-            ? null
-            : await db.Users.Where(u => u.TenantId == tenantId && u.Email == currentUserEmail)
-                .Select(u => new { u.Id, u.Name })
-                .FirstOrDefaultAsync(cancellationToken);
-
-        if (author is null)
-            return Result.Failure<NoteDto>(AppErrors.UserContextNotResolved);
+        // InternalNote.UserId is a non-nullable FK to the domain users table, but the app authenticates
+        // via ASP.NET Identity (AspNetUsers) and the domain users table isn't populated for every
+        // principal. Mirror the authenticated Identity user into a domain user row on first use so the
+        // note can be attributed to a real row (find-or-create by tenant + email).
+        var author = await ResolveOrCreateAuthorAsync(tenantId!.Value, currentUserEmail, authorName, roleName, cancellationToken);
 
         var note = new InternalNote
         {
@@ -54,8 +49,54 @@ internal sealed class NoteService(ApplicationDbContext db, IInboxRealtimeNotifie
         await db.SaveChangesAsync(cancellationToken);
 
         var dto = new NoteDto(note.Id, note.ConversationId, note.Content, author.Name, note.CreatedAt);
-        await notifier.NoteAddedAsync(tenantId!.Value, new InboxNotePayload(note.Id, note.ConversationId, note.Content, author.Name, note.CreatedAt), cancellationToken);
+        await notifier.NoteAddedAsync(tenantId.Value, new InboxNotePayload(note.Id, note.ConversationId, note.Content, author.Name, note.CreatedAt), cancellationToken);
         return Result.Success(dto);
+    }
+
+    /// <summary>
+    /// Returns the domain <see cref="User"/> that mirrors the authenticated Identity user, creating it
+    /// (and its domain role, since users.RoleId is a required FK) the first time it's needed.
+    /// </summary>
+    private async Task<(int Id, string Name)> ResolveOrCreateAuthorAsync(
+        int tenantId, string? email, string authorName, string roleName, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrEmpty(email))
+        {
+            var existing = await db.Users
+                .Where(u => u.TenantId == tenantId && u.Email == email)
+                .Select(u => new { u.Id, u.Name })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (existing is not null)
+                return (existing.Id, existing.Name);
+        }
+
+        var effectiveRole = string.IsNullOrWhiteSpace(roleName) ? "Agent" : roleName;
+        var roleId = await db.Set<Role>()
+            .Where(r => r.Name == effectiveRole)
+            .Select(r => (int?)r.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (roleId is null)
+        {
+            var role = new Role { Name = effectiveRole, Description = effectiveRole };
+            await db.Set<Role>().AddAsync(role, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            roleId = role.Id;
+        }
+
+        var displayName = string.IsNullOrWhiteSpace(authorName) ? (email ?? "User") : authorName;
+        var user = new User
+        {
+            TenantId = tenantId,
+            RoleId = roleId.Value,
+            Name = displayName,
+            Email = email ?? string.Empty,
+            PasswordHash = string.Empty,
+            Status = "Active"
+        };
+        await db.Users.AddAsync(user, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return (user.Id, user.Name);
     }
 
     /// <summary>Tenant-scopes and RBAC-checks a conversation: managers/admins any; agents only their own.</summary>

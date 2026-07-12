@@ -142,7 +142,7 @@ internal sealed class WhatsAppWebhookProcessor(
 
         conversation.LastMessageAt = timestamp;
         // Auto-reopen: a new inbound on a Resolved conversation moves it back to Reopened
-        // (one of only three automatic transitions; the rest are manual — see US-2.8).
+        // (one of only three automatic transitions; the rest are manual.
         var reopened = conversation.Status == ConversationStatus.Resolved;
         if (reopened)
             conversation.Status = ConversationStatus.Reopened;
