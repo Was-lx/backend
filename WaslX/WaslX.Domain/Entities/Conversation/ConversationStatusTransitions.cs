@@ -1,7 +1,7 @@
 namespace WaslX.Domain.SharedEnums;
 
 /// <summary>
-/// The conversation lifecycle state machine (US-2.8). Only three transitions are automatic
+/// The conversation lifecycle state machine. Only three transitions are automatic
 /// (new inbound → New, first agent reply → InProgress, inbound on Resolved → Reopened, handled in
 /// the send/webhook paths); every transition below is the set of valid MANUAL moves an agent/manager
 /// may make from a given status.

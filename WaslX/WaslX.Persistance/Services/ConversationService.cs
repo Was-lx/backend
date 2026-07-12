@@ -118,6 +118,7 @@ internal sealed class ConversationService(
                 LastInboundAt = db.Messages
                     .Where(m => m.ConversationId == c.Id && m.SenderType == SenderType.Customer)
                     .Max(m => (DateTime?)m.Timestamp),
+                c.WindowExpiresAt,
                 MessageCount = db.Messages.Count(m => m.ConversationId == c.Id)
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -126,10 +127,12 @@ internal sealed class ConversationService(
             return Result.Failure<ConversationDetailResponse>(AppErrors.ConversationNotFound);
 
         var allowed = ConversationStatusTransitions.AllowedNext(detail.Status).Select(s => s.ToString()).ToList();
+        var isWindowOpen = detail.WindowExpiresAt is { } expiry && expiry > DateTime.UtcNow;
         return Result.Success(new ConversationDetailResponse(
             detail.Id, detail.Name, detail.PhoneNumber, detail.VipFlag, detail.Status.ToString(),
             allowed, detail.AssignedUserId, detail.AssignedUserName, detail.Tags,
-            detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt, detail.MessageCount));
+            detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt,
+            detail.WindowExpiresAt, isWindowOpen, detail.MessageCount));
     }
 
     public async Task<Result<ConversationStatusResponse>> ChangeStatusAsync(

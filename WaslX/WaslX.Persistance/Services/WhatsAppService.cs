@@ -140,12 +140,21 @@ internal sealed class WhatsAppService(
         if (account.Status != WhatsAppAccountStatus.Connected)
             return Result.Failure<SendMessageResult>(AppErrors.WhatsAppNotConnected);
 
+        var customer = await FindOrCreateCustomerAsync(db, tid, toPhone, cancellationToken);
+        var conversation = await FindOrCreateConversationAsync(db, tid, account.Id, customer, cancellationToken);
+
+        // Enforce the 24-hour window before hitting Meta: only pre-approved templates may be sent
+        // once the window is closed. A closed/never-opened window blocks free-form text/media so the
+        // UI can prompt the agent to pick a template. WindowExpiresAt is anchored to the
+        // customer's last inbound message + 24h (see WhatsAppWebhookProcessor) — agent sends here
+        // never extend it.
+        if (messageType != MessageType.Template &&
+            (conversation.WindowExpiresAt is null || DateTime.UtcNow >= conversation.WindowExpiresAt))
+            return Result.Failure<SendMessageResult>(AppErrors.WhatsAppWindowClosed);
+
         var sendResult = await send(account);
         if (sendResult.IsFailure)
             return Result.Failure<SendMessageResult>(sendResult.Error);
-
-        var customer = await FindOrCreateCustomerAsync(db, tid, toPhone, cancellationToken);
-        var conversation = await FindOrCreateConversationAsync(db, tid, account.Id, customer, cancellationToken);
 
         var now = DateTime.UtcNow;
         var message = new Message
