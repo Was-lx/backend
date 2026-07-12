@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WaslX.Persistance.Data;
 
@@ -11,9 +12,11 @@ using WaslX.Persistance.Data;
 namespace WaslX.Persistance.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260712134211_AddConversationWindowExpiresAt")]
+    partial class AddConversationWindowExpiresAt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -442,10 +445,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime?>("LastCustomerMessageAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("last_customer_message_at");
-
                     b.Property<DateTime?>("LastMessageAt")
                         .HasColumnType("datetime2");
 
@@ -456,10 +455,6 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("ServiceWindowExpiresAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("service_window_expires_at");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1612,84 +1607,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("tags", (string)null);
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.TemplateReview", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("template_review_id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("AllowCategoryChange")
-                        .HasColumnType("bit")
-                        .HasColumnName("allow_category_change");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Language")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("language");
-
-                    b.Property<string>("MessageTemplateName")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)")
-                        .HasColumnName("message_template_name");
-
-                    b.Property<string>("MetaNotes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
-                        .HasColumnName("meta_notes");
-
-                    b.Property<string>("MetaTemplateId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("meta_template_id");
-
-                    b.Property<string>("ReasonCode")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("reason_code");
-
-                    b.Property<string>("ReasonText")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)")
-                        .HasColumnName("reason_text");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("reviewed_at");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("status");
-
-                    b.Property<string>("SubmittedCategory")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("submitted_category");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "MetaTemplateId")
-                        .IsUnique();
-
-                    b.ToTable("template_reviews", (string)null);
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.Tenant", b =>
                 {
                     b.Property<int>("Id")
@@ -2128,9 +2045,8 @@ namespace WaslX.Persistance.Data.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "SUPERADMIN@WASLX.COM",
                             NormalizedUserName = "SUPERADMIN@WASLX.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEMRa6mgIoBxJi+5hNBblDSwU/8a9Kc8xiRU8bdA4F1lOtVauWziqTH7YoVHEFsZl+g==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEPbUKNUN1pjuPZqHvgIlYkPCkRdZ8sOdNRoaq2OeNl7gJ0zySgaNVmKrq6q2OK9Jow==",
                             PhoneNumberConfirmed = false,
-
                             SecurityStamp = "f6a7b8c9-d0e1-4f2a-b3c4-5d6e7f809102",
                             TwoFactorEnabled = false,
                             UserName = "superadmin@waslx.com"
@@ -2557,17 +2473,6 @@ namespace WaslX.Persistance.Data.Migrations
                 {
                     b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
                         .WithMany("Tags")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("WaslX.Domain.Entities.TemplateReview", b =>
-                {
-                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();

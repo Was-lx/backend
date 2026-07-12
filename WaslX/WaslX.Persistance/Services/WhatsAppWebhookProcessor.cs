@@ -157,11 +157,6 @@ internal sealed class WhatsAppWebhookProcessor(
         await db.Messages.AddAsync(inbound, cancellationToken);
 
         conversation.LastMessageAt = timestamp;
-        // ── 24-hour customer-service window ── Every customer message (re)opens the window and
-        // resets the expiry to this message's timestamp + 24h. Agent/template sends never touch
-        // these fields, so the window is ALWAYS anchored on the last CUSTOMER message.
-        conversation.LastCustomerMessageAt = timestamp;
-        conversation.ServiceWindowExpiresAt = timestamp.AddHours(24);
         // Auto-reopen: a new inbound on a Resolved conversation moves it back to Reopened
         // (one of only three automatic transitions; the rest are manual.
         var reopened = conversation.Status == ConversationStatus.Resolved;

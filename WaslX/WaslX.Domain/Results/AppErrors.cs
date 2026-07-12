@@ -36,6 +36,7 @@ public static class AppErrors
     public static readonly Error WhatsAppSendFailed = new("WhatsApp.SendFailed", "Failed to send the WhatsApp message", 502);
     public static readonly Error WhatsAppInvalidWebhookSignature = new("WhatsApp.InvalidWebhookSignature", "Webhook signature validation failed", 401);
     public static readonly Error WhatsAppTemplateCreateFailed = new("WhatsApp.TemplateCreateFailed", "Meta rejected the message template", 400);
+    public static readonly Error WhatsAppWindowClosed = new("WhatsApp.WindowClosed", "The 24-hour messaging window is closed; send an approved template to re-open the conversation", 400);
 
     // Conversations / inbox
     public static readonly Error ConversationNotFound = new("Conversation.NotFound", "Conversation not found", 404);
