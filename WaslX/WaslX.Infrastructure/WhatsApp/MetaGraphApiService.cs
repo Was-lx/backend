@@ -125,6 +125,7 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
         object mediaObject = mediaType switch
         {
             "document" => new { link = mediaUrl, caption, filename = fileName },
+            "sticker" => new { link = mediaUrl }, // stickers take no caption/filename
             _ => new { link = mediaUrl, caption }
         };
 

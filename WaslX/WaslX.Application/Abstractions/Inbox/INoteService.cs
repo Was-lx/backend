@@ -13,7 +13,9 @@ public interface INoteService
     Task<Result<IReadOnlyList<NoteDto>>> GetNotesAsync(
         int? tenantId, int currentUserId, bool isPrivileged, int conversationId, CancellationToken cancellationToken = default);
 
-    /// <param name="currentUserEmail">Resolves the note's author domain <c>User.Id</c> (the JWT subject is the Identity GUID).</param>
+    /// <param name="authorName">Display name of the author (from the JWT), used when mirroring the Identity user into a domain user row.</param>
+    /// <param name="roleName">The author's role name (from the JWT), used for the mirrored domain user's required role.</param>
+    /// <param name="currentUserEmail">Identifies (and, if missing, creates) the author's domain <c>User</c> row by tenant + email.</param>
     Task<Result<NoteDto>> AddNoteAsync(
-        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string content, string? currentUserEmail, CancellationToken cancellationToken = default);
+        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string content, string authorName, string roleName, string? currentUserEmail, CancellationToken cancellationToken = default);
 }

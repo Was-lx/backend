@@ -122,7 +122,7 @@ internal sealed class ConversationService(
             })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (detail is null)
+		if (detail is null)
             return Result.Failure<ConversationDetailResponse>(AppErrors.ConversationNotFound);
 
         var allowed = ConversationStatusTransitions.AllowedNext(detail.Status).Select(s => s.ToString()).ToList();
@@ -240,7 +240,9 @@ internal sealed class ConversationService(
         if (uploadResult.IsFailure)
             return Result.Failure<SendMessageResult>(uploadResult.Error);
 
-        var mediaType = contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? "image"
+        // WhatsApp only accepts webp as a sticker (not as an image), so route webp files accordingly.
+        var mediaType = contentType.Equals("image/webp", StringComparison.OrdinalIgnoreCase) ? "sticker"
+            : contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? "image"
             : contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ? "video"
             : "document";
 

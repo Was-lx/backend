@@ -24,7 +24,7 @@ public record MessageResponse(
     string? MediaMimeType,
     string? MediaFileName);
 
-/// <summary>Rich detail for the customer-context panel + status controls (FE-2.8 / FE-2.12).</summary>
+/// <summary>Rich detail for the customer-context panel + status controls.</summary>
 public record ConversationDetailResponse(
     int Id,
     string CustomerName,

@@ -87,7 +87,9 @@ public class ConversationsController(ISender sender) : ControllerBase
     [HttpPost("{id:int}/notes")]
     public async Task<IActionResult> AddNote(int id, [FromBody] AddNoteRequest request, CancellationToken cancellationToken)
     {
-        var command = new AddNoteCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Content, User.GetEmail());
+        var authorName = User.GetUserName() ?? User.GetEmail() ?? "User";
+        var roleName = User.GetRole() ?? "Agent";
+        var command = new AddNoteCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Content, authorName, roleName, User.GetEmail());
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }
 

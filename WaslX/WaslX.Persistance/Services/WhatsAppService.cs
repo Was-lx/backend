@@ -114,6 +114,7 @@ internal sealed class WhatsAppService(
     {
         "image" => MessageType.Image,
         "video" => MessageType.Video,
+        "sticker" => MessageType.Sticker,
         "document" => MessageType.Document,
         _ => MessageType.Document
     };
@@ -165,7 +166,7 @@ internal sealed class WhatsAppService(
         conversation.LastMessageAt = now;
 
         // First agent reply advances the lifecycle to In Progress (one of the three automatic
-        // transitions — also covers the "reply while Pending → In Progress" edge case; US-2.8).
+        // transitions — also covers the "reply while Pending → In Progress" edge case.
         var advanced = conversation.Status is ConversationStatus.New or ConversationStatus.Assigned
             or ConversationStatus.Reopened or ConversationStatus.Pending;
         if (advanced)

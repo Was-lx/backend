@@ -31,7 +31,21 @@ internal sealed class CloudinaryMediaStorageService : IMediaStorageService
         {
             using var stream = new MemoryStream(content);
             RawUploadResult result;
-            if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            if (contentType.Equals("image/webp", StringComparison.OrdinalIgnoreCase))
+            {
+                // WhatsApp stickers are (often animated) webp, which Cloudinary's image pipeline
+                // rejects as "Invalid webp file". Store the exact bytes as a raw resource, keeping a
+                // .webp extension so the delivery URL is served as image/webp and renders in an <img>
+                // (and so it's still a valid sticker link when we send it back out to WhatsApp).
+                var rawName = fileName.EndsWith(".webp", StringComparison.OrdinalIgnoreCase) ? fileName : fileName + ".webp";
+                result = await _cloudinary.UploadAsync(new RawUploadParams
+                {
+                    File = new FileDescription(rawName, stream),
+                    UseFilename = true,
+                    UniqueFilename = true
+                }, "raw", cancellationToken);
+            }
+            else if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
                 result = await _cloudinary.UploadAsync(new ImageUploadParams { File = new FileDescription(fileName, stream) }, cancellationToken);
             else if (contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
                 result = await _cloudinary.UploadAsync(new VideoUploadParams { File = new FileDescription(fileName, stream) }, cancellationToken);
