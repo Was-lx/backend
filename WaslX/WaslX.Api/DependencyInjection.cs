@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using WaslX.Api.Authorization;
+using WaslX.Api.Realtime;
 using WaslX.Application.Abstractions.Permissions;
+using WaslX.Application.Abstractions.Realtime;
 using WaslX.Infrastructure.Settings;
 
 namespace WaslX.Api
@@ -42,7 +44,26 @@ namespace WaslX.Api
                         ValidateLifetime = true,
                         ClockSkew = TimeSpan.Zero
                     };
+
+                    // SignalR (WebSockets) can't send an Authorization header, so the JWT arrives
+                    // as an "access_token" query parameter on the hub path — hand it to the handler.
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                                context.Token = accessToken;
+                            return Task.CompletedTask;
+                        }
+                    };
                 });
+
+            // camelCase payloads so SignalR messages match the REST API's JSON shape on the client.
+            services.AddSignalR().AddJsonProtocol(options =>
+                options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
+            services.AddScoped<IInboxRealtimeNotifier, InboxRealtimeNotifier>();
 
             // Fine-grained permission enforcement: [HasPermission("code")] resolves to a
             // "perm:code" policy checked server-side against the per-tenant RBAC matrix.

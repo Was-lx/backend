@@ -2,6 +2,7 @@ using Hangfire;
 using Serilog;
 using WaslX.Api;
 using WaslX.Api.Extensions;
+using WaslX.Api.Hubs;
 using WaslX.Application;
 using WaslX.Infrastructure;
 using WaslX.Persistance;
@@ -51,5 +52,8 @@ app.UseAuthorization();
 app.UseHangfireDashboard(app.Configuration["Hangfire:DashboardPath"] ?? "/hangfire");
 
 app.MapControllers();
+
+// Real-time shared inbox (new messages, receipts, notes, lifecycle changes).
+app.MapHub<InboxHub>("/hubs/inbox");
 
 app.Run();

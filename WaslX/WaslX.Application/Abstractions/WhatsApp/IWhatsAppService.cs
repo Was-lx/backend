@@ -14,7 +14,9 @@ public interface IWhatsAppService
     Task<Result<WhatsAppAccountDto>> GetAccountAsync(int? tenantId, CancellationToken cancellationToken = default);
     Task<Result> DisconnectAsync(int? tenantId, CancellationToken cancellationToken = default);
     Task<Result<SendMessageResult>> SendTextAsync(int? tenantId, string toPhone, string text, int? senderUserId = null, CancellationToken cancellationToken = default);
-    Task<Result<SendMessageResult>> SendTemplateAsync(int? tenantId, string toPhone, string templateName, string languageCode, CancellationToken cancellationToken = default);
+
+    /// <param name="variables">Fill the template BODY placeholders ({{1}}, {{2}}, … in order); null/empty for a variable-free template.</param>
+    Task<Result<SendMessageResult>> SendTemplateAsync(int? tenantId, string toPhone, string templateName, string languageCode, IReadOnlyList<string>? variables = null, int? senderUserId = null, CancellationToken cancellationToken = default);
 
     /// <summary>Sends an image/video/document already hosted at a public URL (e.g. Cloudinary).</summary>
     Task<Result<SendMessageResult>> SendMediaAsync(

@@ -3,12 +3,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WaslX.Api.Contracts;
 using WaslX.Api.Extensions;
+using WaslX.Application.Features.Conversations.ChangeConversationStatus;
 using WaslX.Application.Features.Conversations.DeleteConversation;
+using WaslX.Application.Features.Conversations.GetConversationDetail;
 using WaslX.Application.Features.Conversations.GetConversationMessages;
 using WaslX.Application.Features.Conversations.GetConversations;
 using WaslX.Application.Features.Conversations.MarkConversationRead;
 using WaslX.Application.Features.Conversations.SendConversationMedia;
 using WaslX.Application.Features.Conversations.SendConversationMessage;
+using WaslX.Application.Features.Notes.AddNote;
+using WaslX.Application.Features.Notes.GetNotes;
 using WaslX.Application.Features.WhatsApp.Dtos;
 using WaslX.Domain.Results;
 
@@ -60,6 +64,38 @@ public class ConversationsController(ISender sender) : ControllerBase
         var command = new SendConversationMediaCommand(
             User.GetTenantId(), CurrentUserId(), IsPrivileged(), id,
             buffer.ToArray(), file.FileName, contentType, caption, User.GetEmail());
+        return (await sender.Send(command, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Rich detail for the customer-context panel + status controls.</summary>
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetDetail(int id, CancellationToken cancellationToken)
+    {
+        var query = new GetConversationDetailQuery(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id);
+        return (await sender.Send(query, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Lists a conversation's internal team notes (team-only; never sent to the customer).</summary>
+    [HttpGet("{id:int}/notes")]
+    public async Task<IActionResult> GetNotes(int id, CancellationToken cancellationToken)
+    {
+        var query = new GetNotesQuery(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id);
+        return (await sender.Send(query, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Adds an internal team note to a conversation (team-only; never sent to the customer).</summary>
+    [HttpPost("{id:int}/notes")]
+    public async Task<IActionResult> AddNote(int id, [FromBody] AddNoteRequest request, CancellationToken cancellationToken)
+    {
+        var command = new AddNoteCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Content, User.GetEmail());
+        return (await sender.Send(command, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Applies a manual lifecycle transition (server-side state machine rejects invalid moves).</summary>
+    [HttpPost("{id:int}/status")]
+    public async Task<IActionResult> ChangeStatus(int id, [FromBody] ChangeConversationStatusRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ChangeConversationStatusCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Status);
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }
 

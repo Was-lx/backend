@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WaslX.Application.Abstractions.Inbox;
 using WaslX.Application.Abstractions.Media;
+using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Application.Features.Conversations.Dtos;
 using WaslX.Application.Features.WhatsApp.Dtos;
@@ -10,7 +11,11 @@ using WaslX.Persistance.Data;
 
 namespace WaslX.Persistance.Services;
 
-internal sealed class ConversationService(ApplicationDbContext db, IWhatsAppService whatsApp, IMediaStorageService mediaStorage) : IConversationService
+internal sealed class ConversationService(
+    ApplicationDbContext db,
+    IWhatsAppService whatsApp,
+    IMediaStorageService mediaStorage,
+    IInboxRealtimeNotifier notifier) : IConversationService
 {
     public async Task<Result<PagedResult<ConversationListItemResponse>>> GetConversationsAsync(
         int? tenantId, int currentUserId, bool isPrivileged, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -87,6 +92,72 @@ internal sealed class ConversationService(ApplicationDbContext db, IWhatsAppServ
             messages.RemoveAt(messages.Count - 1);
 
         return Result.Success(new PagedResult<MessageResponse>(messages, hasMore));
+    }
+
+    public async Task<Result<ConversationDetailResponse>> GetDetailAsync(
+        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, CancellationToken cancellationToken = default)
+    {
+        var access = await ResolveConversationAsync(tenantId, currentUserId, isPrivileged, conversationId, cancellationToken);
+        if (access.IsFailure)
+            return Result.Failure<ConversationDetailResponse>(access.Error);
+
+        var detail = await db.Conversations.AsNoTracking()
+            .Where(c => c.Id == conversationId)
+            .Select(c => new
+            {
+                c.Id,
+                c.Customer.Name,
+                c.Customer.PhoneNumber,
+                c.Customer.VipFlag,
+                c.Status,
+                c.AssignedUserId,
+                AssignedUserName = c.AssignedUser != null ? c.AssignedUser.Name : null,
+                Tags = c.ConversationTags.Select(t => t.Tag.Name).ToList(),
+                c.CreatedAt,
+                c.LastMessageAt,
+                LastInboundAt = db.Messages
+                    .Where(m => m.ConversationId == c.Id && m.SenderType == SenderType.Customer)
+                    .Max(m => (DateTime?)m.Timestamp),
+                MessageCount = db.Messages.Count(m => m.ConversationId == c.Id)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (detail is null)
+            return Result.Failure<ConversationDetailResponse>(AppErrors.ConversationNotFound);
+
+        var allowed = ConversationStatusTransitions.AllowedNext(detail.Status).Select(s => s.ToString()).ToList();
+        return Result.Success(new ConversationDetailResponse(
+            detail.Id, detail.Name, detail.PhoneNumber, detail.VipFlag, detail.Status.ToString(),
+            allowed, detail.AssignedUserId, detail.AssignedUserName, detail.Tags,
+            detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt, detail.MessageCount));
+    }
+
+    public async Task<Result<ConversationStatusResponse>> ChangeStatusAsync(
+        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string targetStatus, CancellationToken cancellationToken = default)
+    {
+        var access = await ResolveConversationAsync(tenantId, currentUserId, isPrivileged, conversationId, cancellationToken);
+        if (access.IsFailure)
+            return Result.Failure<ConversationStatusResponse>(access.Error);
+
+        if (!Enum.TryParse<ConversationStatus>(targetStatus, ignoreCase: true, out var target))
+            return Result.Failure<ConversationStatusResponse>(AppErrors.ConversationInvalidTransition);
+
+        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
+        if (conversation is null)
+            return Result.Failure<ConversationStatusResponse>(AppErrors.ConversationNotFound);
+
+        if (conversation.Status != target && !ConversationStatusTransitions.CanTransition(conversation.Status, target))
+            return Result.Failure<ConversationStatusResponse>(AppErrors.ConversationInvalidTransition);
+
+        conversation.Status = target;
+        conversation.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        await notifier.ConversationChangedAsync(tenantId!.Value, new ConversationChangedPayload(
+            conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);
+
+        var allowed = ConversationStatusTransitions.AllowedNext(target).Select(s => s.ToString()).ToList();
+        return Result.Success(new ConversationStatusResponse(conversation.Id, target.ToString(), allowed));
     }
 
     public async Task<Result<SendMessageResult>> SendTextAsync(

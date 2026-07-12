@@ -32,10 +32,13 @@ public static class AppErrors
     public static readonly Error WhatsAppGraphApiError = new("WhatsApp.GraphApiError", "The Meta Graph API request failed", 502);
     public static readonly Error WhatsAppSendFailed = new("WhatsApp.SendFailed", "Failed to send the WhatsApp message", 502);
     public static readonly Error WhatsAppInvalidWebhookSignature = new("WhatsApp.InvalidWebhookSignature", "Webhook signature validation failed", 401);
+    public static readonly Error WhatsAppTemplateCreateFailed = new("WhatsApp.TemplateCreateFailed", "Meta rejected the message template", 400);
 
     // Conversations / inbox
     public static readonly Error ConversationNotFound = new("Conversation.NotFound", "Conversation not found", 404);
     public static readonly Error ConversationAccessDenied = new("Conversation.AccessDenied", "You do not have access to this conversation", 403);
+    public static readonly Error ConversationInvalidTransition = new("Conversation.InvalidTransition", "That status change is not allowed from the current status", 400);
+    public static readonly Error UserContextNotResolved = new("User.ContextNotResolved", "Could not resolve the current user for this workspace", 400);
 
     // Media
     public static readonly Error MediaUploadFailed = new("Media.UploadFailed", "Could not upload the file", 502);

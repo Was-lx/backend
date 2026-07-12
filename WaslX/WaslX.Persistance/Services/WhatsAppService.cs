@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Application.Features.WhatsApp.Dtos;
 using WaslX.Domain.Entities;
@@ -12,6 +13,7 @@ namespace WaslX.Persistance.Services;
 internal sealed class WhatsAppService(
     ApplicationDbContext db,
     IMetaGraphApiService graphApi,
+    IInboxRealtimeNotifier notifier,
     ILogger<WhatsAppService> logger) : IWhatsAppService
 {
     public async Task<Result<WhatsAppAccountDto>> ConnectAsync(int? tenantId, string authorizationCode, string? wabaId, string? redirectUri = null, CancellationToken cancellationToken = default)
@@ -91,10 +93,10 @@ internal sealed class WhatsAppService(
             senderUserId,
             cancellationToken);
 
-    public Task<Result<SendMessageResult>> SendTemplateAsync(int? tenantId, string toPhone, string templateName, string languageCode, CancellationToken cancellationToken = default) =>
+    public Task<Result<SendMessageResult>> SendTemplateAsync(int? tenantId, string toPhone, string templateName, string languageCode, IReadOnlyList<string>? variables = null, int? senderUserId = null, CancellationToken cancellationToken = default) =>
         SendAsync(tenantId, toPhone, MessageType.Template, templateName,
-            (account) => graphApi.SendTemplateMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, templateName, languageCode, cancellationToken),
-            null,
+            (account) => graphApi.SendTemplateMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, templateName, languageCode, variables, cancellationToken),
+            senderUserId,
             cancellationToken);
 
     public Task<Result<SendMessageResult>> SendMediaAsync(
@@ -162,7 +164,23 @@ internal sealed class WhatsAppService(
         await db.Messages.AddAsync(message, cancellationToken);
         conversation.LastMessageAt = now;
 
+        // First agent reply advances the lifecycle to In Progress (one of the three automatic
+        // transitions — also covers the "reply while Pending → In Progress" edge case; US-2.8).
+        var advanced = conversation.Status is ConversationStatus.New or ConversationStatus.Assigned
+            or ConversationStatus.Reopened or ConversationStatus.Pending;
+        if (advanced)
+            conversation.Status = ConversationStatus.InProgress;
+
         await db.SaveChangesAsync(cancellationToken);
+
+        await notifier.MessageReceivedAsync(tid, new InboxMessagePayload(
+            message.Id, conversation.Id, message.SenderType.ToString(), message.Content,
+            message.MessageType.ToString(), message.Status.ToString(), message.Timestamp,
+            message.SenderUserId, message.MediaUrl, message.MediaMimeType, message.MediaFileName), cancellationToken);
+
+        if (advanced)
+            await notifier.ConversationChangedAsync(tid, new ConversationChangedPayload(
+                conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);
 
         return Result.Success(new SendMessageResult(message.Id, conversation.Id, message.WhatsAppMessageId, message.Status.ToString()));
     }

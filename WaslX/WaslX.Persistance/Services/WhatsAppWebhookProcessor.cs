@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using WaslX.Application.Abstractions.Media;
+using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Domain.Entities;
 using WaslX.Domain.SharedEnums;
@@ -11,12 +12,14 @@ namespace WaslX.Persistance.Services;
 
 /// <summary>
 /// Hangfire-invoked processor that turns a stored raw webhook payload into inbound messages
-/// and message-status updates. Resolves the tenant from the payload's phone_number_id.
+/// and message-status updates. Resolves the tenant from the payload's phone_number_id, and
+/// pushes each change to the shared inbox in real time via <see cref="IInboxRealtimeNotifier"/>.
 /// </summary>
 internal sealed class WhatsAppWebhookProcessor(
     ApplicationDbContext db,
     IMetaGraphApiService graphApi,
     IMediaStorageService mediaStorage,
+    IInboxRealtimeNotifier notifier,
     ILogger<WhatsAppWebhookProcessor> logger) : IWhatsAppWebhookProcessor
 {
     private static readonly HashSet<MessageType> MediaTypes =
@@ -138,11 +141,23 @@ internal sealed class WhatsAppWebhookProcessor(
         await db.Messages.AddAsync(inbound, cancellationToken);
 
         conversation.LastMessageAt = timestamp;
-        if (conversation.Status == ConversationStatus.Resolved)
+        // Auto-reopen: a new inbound on a Resolved conversation moves it back to Reopened
+        // (one of only three automatic transitions; the rest are manual — see US-2.8).
+        var reopened = conversation.Status == ConversationStatus.Resolved;
+        if (reopened)
             conversation.Status = ConversationStatus.Reopened;
 
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Stored inbound WhatsApp message {WaMessageId} for tenant {TenantId}", waMessageId, account.TenantId);
+
+        await notifier.MessageReceivedAsync(account.TenantId, new InboxMessagePayload(
+            inbound.Id, conversation.Id, inbound.SenderType.ToString(), inbound.Content,
+            inbound.MessageType.ToString(), inbound.Status.ToString(), inbound.Timestamp,
+            inbound.SenderUserId, inbound.MediaUrl, inbound.MediaMimeType, inbound.MediaFileName), cancellationToken);
+
+        if (reopened)
+            await notifier.ConversationChangedAsync(account.TenantId, new ConversationChangedPayload(
+                conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);
     }
 
     private async Task HandleStatusAsync(JsonElement status, CancellationToken cancellationToken)
@@ -159,6 +174,10 @@ internal sealed class WhatsAppWebhookProcessor(
         message.Status = MapStatus(statusString, message.Status);
         message.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+
+        var tenantId = await db.Conversations.Where(c => c.Id == message.ConversationId)
+            .Select(c => c.TenantId).FirstOrDefaultAsync(cancellationToken);
+        await notifier.MessageStatusChangedAsync(tenantId, message.ConversationId, message.Id, message.Status.ToString(), cancellationToken);
     }
 
     /// <summary>

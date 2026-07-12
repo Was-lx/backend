@@ -66,9 +66,11 @@ namespace WaslX.Persistance
             // WhatsApp (needs direct DbContext for multi-entity conversation/message writes).
             services.AddScoped<IWhatsAppService, WhatsAppService>();
             services.AddScoped<IWhatsAppWebhookProcessor, WhatsAppWebhookProcessor>();
+            services.AddScoped<IWhatsAppTemplateService, WhatsAppTemplateService>();
 
-            // Shared inbox (conversation list / history / reply).
+            // Shared inbox (conversation list / history / reply / notes).
             services.AddScoped<IConversationService, ConversationService>();
+            services.AddScoped<INoteService, NoteService>();
 
             return services;
         }

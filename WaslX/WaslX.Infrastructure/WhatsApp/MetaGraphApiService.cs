@@ -139,18 +139,126 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
         return await PostMessageAsync(phoneNumberId, accessToken, payload, cancellationToken);
     }
 
-    public async Task<Result<string>> SendTemplateMessageAsync(string phoneNumberId, string accessToken, string toPhone, string templateName, string languageCode, CancellationToken cancellationToken = default)
+    public async Task<Result<string>> SendTemplateMessageAsync(
+        string phoneNumberId, string accessToken, string toPhone, string templateName, string languageCode,
+        IReadOnlyList<string>? bodyParameters = null, CancellationToken cancellationToken = default)
     {
+        // Only attach a components array when the template actually has BODY variables to fill.
+        var components = bodyParameters is { Count: > 0 }
+            ? new object[]
+            {
+                new
+                {
+                    type = "body",
+                    parameters = bodyParameters.Select(p => new { type = "text", text = p }).ToArray()
+                }
+            }
+            : null;
+
+        object template = components is null
+            ? new { name = templateName, language = new { code = languageCode } }
+            : new { name = templateName, language = new { code = languageCode }, components };
+
         var payload = new
         {
             messaging_product = "whatsapp",
             recipient_type = "individual",
             to = toPhone,
             type = "template",
-            template = new { name = templateName, language = new { code = languageCode } }
+            template
         };
         return await PostMessageAsync(phoneNumberId, accessToken, payload, cancellationToken);
     }
+
+    public async Task<Result<IReadOnlyList<MetaTemplate>>> ListTemplatesAsync(
+        string wabaId, string accessToken, string? status = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var url = $"{wabaId}/message_templates?fields=id,name,language,category,status,components&limit=200" +
+                      $"&access_token={Uri.EscapeDataString(accessToken)}";
+            if (!string.IsNullOrWhiteSpace(status))
+                url += $"&status={Uri.EscapeDataString(status)}";
+
+            using var response = await _http.GetAsync(url, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+                return LogAndFail<IReadOnlyList<MetaTemplate>>(AppErrors.WhatsAppGraphApiError, "list templates", body);
+
+            using var doc = JsonDocument.Parse(body);
+            var templates = new List<MetaTemplate>();
+            if (doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var el in data.EnumerateArray())
+                    templates.Add(ParseTemplate(el));
+            }
+
+            return Result.Success<IReadOnlyList<MetaTemplate>>(templates);
+        }
+        catch (Exception ex)
+        {
+            return LogAndFail<IReadOnlyList<MetaTemplate>>(AppErrors.WhatsAppGraphApiError, "list templates", ex);
+        }
+    }
+
+    public async Task<Result<MetaTemplateCreateResult>> CreateTemplateAsync(
+        string wabaId, string accessToken, object payload, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var request = BuildJsonRequest($"{wabaId}/message_templates", accessToken, payload);
+            using var response = await _http.SendAsync(request, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+                return LogAndFail<MetaTemplateCreateResult>(AppErrors.WhatsAppTemplateCreateFailed, "create template", body);
+
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            var id = root.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? string.Empty : string.Empty;
+            var createStatus = root.TryGetProperty("status", out var stEl) ? stEl.GetString() ?? "PENDING" : "PENDING";
+            var category = root.TryGetProperty("category", out var catEl) ? catEl.GetString() ?? string.Empty : string.Empty;
+
+            return Result.Success(new MetaTemplateCreateResult(id, createStatus, category));
+        }
+        catch (Exception ex)
+        {
+            return LogAndFail<MetaTemplateCreateResult>(AppErrors.WhatsAppGraphApiError, "create template", ex);
+        }
+    }
+
+    private static MetaTemplate ParseTemplate(JsonElement el)
+    {
+        var components = new List<MetaTemplateComponent>();
+        if (el.TryGetProperty("components", out var comps) && comps.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var c in comps.EnumerateArray())
+            {
+                var buttons = new List<MetaTemplateButton>();
+                if (c.TryGetProperty("buttons", out var btns) && btns.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var b in btns.EnumerateArray())
+                        buttons.Add(new MetaTemplateButton(
+                            GetString(b, "type"), GetString(b, "text"), GetString(b, "url"), GetString(b, "phone_number")));
+                }
+
+                components.Add(new MetaTemplateComponent(
+                    GetString(c, "type") ?? string.Empty, GetString(c, "format"), GetString(c, "text"), buttons));
+            }
+        }
+
+        return new MetaTemplate(
+            GetString(el, "id") ?? string.Empty,
+            GetString(el, "name") ?? string.Empty,
+            GetString(el, "language") ?? string.Empty,
+            GetString(el, "category") ?? string.Empty,
+            GetString(el, "status") ?? string.Empty,
+            components);
+    }
+
+    private static string? GetString(JsonElement el, string prop) =>
+        el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
     public async Task<Result<MetaMediaResult>> DownloadMediaAsync(string mediaId, string accessToken, CancellationToken cancellationToken = default)
     {
