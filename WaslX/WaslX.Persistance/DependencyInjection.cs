@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -67,6 +67,7 @@ namespace WaslX.Persistance
             services.AddScoped<IWhatsAppService, WhatsAppService>();
             services.AddScoped<IWhatsAppWebhookProcessor, WhatsAppWebhookProcessor>();
             services.AddScoped<IWhatsAppTemplateService, WhatsAppTemplateService>();
+            services.AddScoped<IConversationWindowService, ConversationWindowService>();
 
             // Shared inbox (conversation list / history / reply / notes).
             services.AddScoped<IConversationService, ConversationService>();

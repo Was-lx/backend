@@ -45,9 +45,6 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
         if (result.IsFailure)
             return Result.Failure<TemplateCreateResultDto>(result.Error);
 
-        // Persist the create-time audit row: Meta never echoes back the category we submitted nor
-        // our allow_category_change choice, so we keep them locally to power the "requested vs final"
-        // category comparison later (once the review webhook lands).
         var review = new TemplateReview
         {
             TenantId = tid,
@@ -158,12 +155,14 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
             ReasonCode: review?.ReasonCode,
             ReasonText: review?.ReasonText,
             MetaNotes: review?.MetaNotes,
-            SubmittedCategory: submittedCategory,
-            FinalCategory: finalCategory,
+            SubmittedCategory: review?.SubmittedCategory,
+            FinalCategory: t.Category,
             AllowCategoryChange: review?.AllowCategoryChange ?? false,
             ChangedByMeta: changedByMeta,
             ReviewedAt: review?.ReviewedAt,
-            // Uppercased so the frontend can switch on TEXT/IMAGE/VIDEO/DOCUMENT reliably.
+            PauseInfo: review?.PauseInfo,
+            DisableTimestamp: review?.DisableTimestamp,
+            IsDeleted: review?.DeletedAt.HasValue ?? false,
             HeaderFormat: header?.Format?.ToUpperInvariant());
     }
 

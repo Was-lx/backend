@@ -40,6 +40,8 @@ public record ConversationDetailResponse(
     DateTime? LastInboundAt,
     DateTime? WindowExpiresAt,
     bool IsWindowOpen,
+    string WindowType,
+    long RemainingSeconds,
     int MessageCount);
 
 /// <summary>Returned after a status change: the new status plus the moves now valid from it.</summary>

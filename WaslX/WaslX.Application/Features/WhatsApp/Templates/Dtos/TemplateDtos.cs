@@ -19,6 +19,9 @@ public record TemplateDto(
     bool AllowCategoryChange,
     bool ChangedByMeta,
     DateTime? ReviewedAt,
+    string? PauseInfo,
+    DateTime? DisableTimestamp,
+    bool IsDeleted,
     // HEADER component format: TEXT / IMAGE / VIDEO / DOCUMENT (null when the template has no header).
     // The picker uses this to render a text field vs a media upload for the header parameter.
     string? HeaderFormat = null);

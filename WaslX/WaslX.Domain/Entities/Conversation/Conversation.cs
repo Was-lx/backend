@@ -18,6 +18,7 @@ namespace WaslX.Domain.Entities
         public DateTime? LastMessageAt { get; set; }
         public DateTime? LastCustomerMessageAt { get; set; }
         public DateTime? WindowExpiresAt { get; set; }
+        public ConversationWindowType WindowType { get; set; } = ConversationWindowType.None;
         public DateTime? LastReadAt { get; set; }
         public bool IsDeleted { get; set; }
 
