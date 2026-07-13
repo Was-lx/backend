@@ -21,6 +21,14 @@ namespace WaslX.Persistance.Configurations
             builder.Property(x => x.SubmittedCategory).HasColumnName("submitted_category").HasMaxLength(50).IsRequired();
             builder.Property(x => x.AllowCategoryChange).HasColumnName("allow_category_change");
             builder.Property(x => x.ReviewedAt).HasColumnName("reviewed_at");
+            
+            // New lifecycle fields
+            builder.Property(x => x.FinalCategory).HasMaxLength(50);
+            builder.Property(x => x.PauseInfo);
+            builder.Property(x => x.MetaStatusRaw);
+            builder.Property(x => x.DisableTimestamp);
+            builder.Property(x => x.DeletedAt);
+            
             builder.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
             // One review row per (tenant, Meta template id) — upsert target for create + webhook.
             builder.HasIndex(x => new { x.TenantId, x.MetaTemplateId }).IsUnique();

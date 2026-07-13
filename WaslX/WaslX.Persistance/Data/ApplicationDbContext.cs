@@ -39,6 +39,7 @@ namespace WaslX.Persistance.Data
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<TemplateReview> TemplateReviews { get; set; }
+        public DbSet<TemplateReviewHistory> TemplateReviewHistories { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
         public DbSet<Campaign> Campaigns { get; set; }
         public DbSet<CampaignRecipient> CampaignRecipients { get; set; }

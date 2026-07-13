@@ -15,6 +15,7 @@ internal sealed class WhatsAppService(
     ApplicationDbContext db,
     IMetaGraphApiService graphApi,
     IInboxRealtimeNotifier notifier,
+    IConversationWindowService windowService,
     ILogger<WhatsAppService> logger) : IWhatsAppService
 {
     public async Task<Result<WhatsAppAccountDto>> ConnectAsync(int? tenantId, string authorizationCode, string? wabaId, string? redirectUri = null, CancellationToken cancellationToken = default)
@@ -153,12 +154,10 @@ internal sealed class WhatsAppService(
                 // conversation for a failed send to a phone that never messaged us (a closed window
                 // normally implies a prior inbound anyway). Look up read-only; skip silently if absent.
                 var closedConversation = await FindExistingConversationAsync(db, tid, toPhone, cancellationToken);
-                if (closedConversation is not null &&
-                    (closedConversation.WindowExpiresAt is null || closedConversation.WindowExpiresAt > DateTime.UtcNow))
-                {
-                    closedConversation.WindowExpiresAt = DateTime.UtcNow;
+                windowService.SynchronizeAfterFailedSend(closedConversation);
+                // ── caller (SendAsync) owns SaveChanges ────────────────────────────────
+                if (closedConversation is not null)
                     await db.SaveChangesAsync(cancellationToken);
-                }
             }
             return Result.Failure<SendMessageResult>(sendResult.Error);
         }
@@ -191,12 +190,11 @@ internal sealed class WhatsAppService(
         // LastCustomerMessageAt + 24h; if we never recorded an inbound, fall back to now + 24h since Meta
         // just confirmed it is open. Only ever extend forward: never pull the expiry earlier (this keeps
         // a 72h free-entry-point window intact and never shrinks Meta's authoritative value).
+        // ARCHITECTURE NOTE: only free-form sends prove the window is open.
+        // Template sends are never used to heal the window — templates bypass the window entirely.
         if (messageType != MessageType.Template)
-        {
-            var healed = conversation.LastCustomerMessageAt is { } anchor ? anchor.AddHours(24) : now.AddHours(24);
-            if (conversation.WindowExpiresAt is null || healed > conversation.WindowExpiresAt)
-                conversation.WindowExpiresAt = healed;
-        }
+            windowService.SynchronizeAfterSuccessfulSend(conversation);
+        // ── caller (SendAsync) owns SaveChanges below ──────────────────────────────
 
         // First agent reply advances the lifecycle to In Progress (one of the three automatic
         // transitions — also covers the "reply while Pending → In Progress" edge case. Resolved is

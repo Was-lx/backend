@@ -10,16 +10,13 @@ using WaslX.Persistance.Data;
 
 namespace WaslX.Persistance.Services;
 
-/// <summary>
-/// Hangfire-invoked processor that turns a stored raw webhook payload into inbound messages
-/// and message-status updates. Resolves the tenant from the payload's phone_number_id, and
-/// pushes each change to the shared inbox in real time via <see cref="IInboxRealtimeNotifier"/>.
-/// </summary>
+
 internal sealed class WhatsAppWebhookProcessor(
     ApplicationDbContext db,
     IMetaGraphApiService graphApi,
     IMediaStorageService mediaStorage,
     IInboxRealtimeNotifier notifier,
+    IConversationWindowService windowService,
     ILogger<WhatsAppWebhookProcessor> logger) : IWhatsAppWebhookProcessor
 {
     private static readonly HashSet<MessageType> MediaTypes =
@@ -157,15 +154,8 @@ internal sealed class WhatsAppWebhookProcessor(
         await db.Messages.AddAsync(inbound, cancellationToken);
 
         conversation.LastMessageAt = timestamp;
-        // The customer's inbound (re)opens the customer-service window; agent replies never touch it.
-        // Persist both the anchor and the derived expiry so the UI reads a stored value instead of a
-        // MAX() subquery. A free entry point (Click-to-WhatsApp ad / Page CTA — flagged by Meta's
-        // `referral` object) grants 72h instead of 24h. We anchor generously: if the heuristic is ever
-        // wrong, Meta refines it via expiration_timestamp (HandleStatusAsync) and, failing that, rejects
-        // an out-of-window send with 131047 so the send path reconciles it — see SendAsync.
-        var windowHours = message.TryGetProperty("referral", out _) ? 72 : 24;
-        conversation.LastCustomerMessageAt = timestamp;
-        conversation.WindowExpiresAt = timestamp.AddHours(windowHours);
+        var hasReferral = message.TryGetProperty("referral", out _);
+        windowService.UpdateFromInboundMessage(conversation, timestamp, hasReferral);
         // Auto-reopen: a new inbound on a Resolved conversation moves it back to Reopened
         // (one of only three automatic transitions; the rest are manual.
         var reopened = conversation.Status == ConversationStatus.Resolved;
@@ -201,12 +191,8 @@ internal sealed class WhatsAppWebhookProcessor(
 
         var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == message.ConversationId, cancellationToken);
 
-        // Sync Meta's authoritative window expiry when it rides along on the status. Extend forward
-        // only so it never pulls the inbound-anchored value earlier — it can only lengthen it, e.g.
-        // 24h → 72h for a free-entry-point conversation.
-        if (conversation is not null && ExtractConversationExpiry(status) is { } metaExpiry &&
-            (conversation.WindowExpiresAt is null || metaExpiry > conversation.WindowExpiresAt))
-            conversation.WindowExpiresAt = metaExpiry;
+        if (conversation is not null)
+            windowService.UpdateFromMetaStatus(conversation, ExtractConversationExpiry(status));
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -255,6 +241,9 @@ internal sealed class WhatsAppWebhookProcessor(
         var review = await db.TemplateReviews
             .FirstOrDefaultAsync(r => r.TenantId == account.TenantId && r.MetaTemplateId == metaTemplateId, cancellationToken);
 
+        // Capture raw payload for audit — never lose Meta data.
+        var rawJson = value.GetRawText();
+
         var now = DateTime.UtcNow;
         if (review is null)
         {
@@ -270,19 +259,61 @@ internal sealed class WhatsAppWebhookProcessor(
                 ReasonText = reason,
                 SubmittedCategory = string.Empty,
                 AllowCategoryChange = false,
-                ReviewedAt = newStatus is "APPROVED" or "REJECTED" ? now : null
+                ReviewedAt = newStatus is "APPROVED" or "REJECTED" ? now : null,
+                MetaStatusRaw = rawJson
             };
             await db.TemplateReviews.AddAsync(review, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken); // Need ID for history
         }
         else
         {
             review.Status = newStatus;
+            review.MetaStatusRaw = rawJson;
             // Update reason only when Meta provides one (null = keep prior, or clear on non-rejected).
             review.ReasonText = newStatus == "REJECTED" ? reason : null;
             review.ReasonCode = newStatus == "REJECTED" ? review.ReasonCode : null;
             review.ReviewedAt = newStatus is "APPROVED" or "REJECTED" ? now : review.ReviewedAt;
             review.UpdatedAt = now;
+
+            // FinalCategory: set when Meta reports a different category than we submitted.
+            if (!string.IsNullOrEmpty(newStatus))
+            {
+                var metaCategory = update.TryGetProperty("message_template_category", out var catEl)
+                    ? catEl.GetString() : null;
+                if (metaCategory is not null && !string.Equals(metaCategory, review.SubmittedCategory,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    review.FinalCategory = metaCategory;
+                    // ChangedByMeta is derived at read time (FinalCategory != SubmittedCategory);
+                    // no separate bool is persisted to avoid drift.
+                }
+            }
+
+            // Lifecycle fields
+            if (newStatus == "PAUSED" && update.TryGetProperty("pause_info", out var piEl))
+                review.PauseInfo = piEl.GetRawText();
+
+            if (newStatus == "DISABLED")
+                review.DisableTimestamp ??= DateTime.UtcNow;
+
+            if (newStatus is "DELETED")
+                review.DeletedAt ??= DateTime.UtcNow;
         }
+
+        // Append an immutable history event — one row per status change, never edited.
+        var historyEvent = new TemplateReviewHistory
+        {
+            TemplateReviewId = review.Id,
+            TenantId         = account.TenantId,
+            Status           = newStatus,
+            ChangedAt        = now,
+            ReasonCode       = review.ReasonCode,
+            ReasonText       = reason,
+            FinalCategory    = review.FinalCategory,
+            PauseInfo        = review.PauseInfo,
+            MetaStatusRaw    = rawJson
+        };
+        await db.TemplateReviewHistories.AddAsync(historyEvent, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Template status update: template {TemplateId} → {Status} (reason={Reason})",

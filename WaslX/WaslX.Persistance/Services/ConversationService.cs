@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WaslX.Domain.Entities;
 using WaslX.Application.Abstractions.Inbox;
 using WaslX.Application.Abstractions.Media;
 using WaslX.Application.Abstractions.Realtime;
@@ -15,7 +16,8 @@ internal sealed class ConversationService(
     ApplicationDbContext db,
     IWhatsAppService whatsApp,
     IMediaStorageService mediaStorage,
-    IInboxRealtimeNotifier notifier) : IConversationService
+    IInboxRealtimeNotifier notifier,
+    IConversationWindowService windowService) : IConversationService
 {
     public async Task<Result<PagedResult<ConversationListItemResponse>>> GetConversationsAsync(
         int? tenantId, int currentUserId, bool isPrivileged, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -121,6 +123,7 @@ internal sealed class ConversationService(
                     .Where(m => m.ConversationId == c.Id && m.SenderType == SenderType.Customer)
                     .Max(m => (DateTime?)m.Timestamp),
                 c.WindowExpiresAt,
+                c.WindowType,
                 MessageCount = db.Messages.Count(m => m.ConversationId == c.Id)
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -129,15 +132,20 @@ internal sealed class ConversationService(
             return Result.Failure<ConversationDetailResponse>(AppErrors.ConversationNotFound);
 
         var allowed = ConversationStatusTransitions.AllowedNext(detail.Status).Select(s => s.ToString()).ToList();
-        // Persisted WindowExpiresAt is the authoritative 24h anchor (set on every inbound); fall back
-        // to deriving it from the last inbound timestamp for rows created before the window migration.
-        var windowExpiresAt = detail.WindowExpiresAt ?? detail.LastInboundAt?.AddHours(24);
-        var isWindowOpen = windowExpiresAt is not null && windowExpiresAt > DateTime.UtcNow;
+        // Build a lightweight transient entity to drive the window service. No DB write.
+        var transient = new Conversation
+        {
+            LastCustomerMessageAt = detail.LastInboundAt,
+            WindowExpiresAt       = detail.WindowExpiresAt,
+            WindowType            = detail.WindowType
+        };
+        var windowState = windowService.EvaluateConversation(transient);
+
         return Result.Success(new ConversationDetailResponse(
             detail.Id, detail.Name, detail.PhoneNumber, detail.VipFlag, detail.Status.ToString(),
             allowed, detail.AssignedUserId, detail.AssignedUserName, detail.Tags,
             detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt,
-            windowExpiresAt, isWindowOpen, detail.MessageCount));
+            windowState.WindowExpiresAt, windowState.IsOpen, windowState.WindowType.ToString(), (long)windowState.RemainingTime.TotalSeconds, detail.MessageCount));
     }
 
     public async Task<Result<ConversationStatusResponse>> ChangeStatusAsync(
