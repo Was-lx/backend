@@ -1,3 +1,4 @@
+using WaslX.Application.Features.WhatsApp.Templates.Dtos;
 using WaslX.Domain.Results;
 
 namespace WaslX.Application.Abstractions.WhatsApp;
@@ -34,13 +35,13 @@ public interface IMetaGraphApiService
         string? caption, string? fileName, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sends a pre-approved template message. <paramref name="bodyParameters"/> fill the BODY
-    /// placeholders ({{1}}, {{2}}, … in order); pass null/empty for a template with no variables.
-    /// Returns the WhatsApp message id (wamid) on success.
+    /// Sends a pre-approved template message. <paramref name="parameters"/> fill the template's
+    /// HEADER (text or media), BODY ({{1}}, {{2}}, … in order) and dynamic BUTTON placeholders;
+    /// pass null for a template with no variables. Returns the WhatsApp message id (wamid) on success.
     /// </summary>
     Task<Result<string>> SendTemplateMessageAsync(
         string phoneNumberId, string accessToken, string toPhone, string templateName, string languageCode,
-        IReadOnlyList<string>? bodyParameters = null, CancellationToken cancellationToken = default);
+        TemplateSendParameters? parameters = null, CancellationToken cancellationToken = default);
 
     /// <summary>Lists the WABA's message templates, optionally filtered by status (e.g. "APPROVED").</summary>
     Task<Result<IReadOnlyList<MetaTemplate>>> ListTemplatesAsync(

@@ -19,7 +19,8 @@ namespace WaslX.Persistance.Configurations
             builder.HasOne(x => x.Tenant).WithMany(x => x.WhatsAppAccounts).HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(x => x.PhoneNumberId).HasMaxLength(20).IsRequired();
-            builder.Property(x => x.whatsAppBusinessAccountId).HasMaxLength(20).IsRequired();
+            // Keep the original column name so the rename to PascalCase needs no migration.
+            builder.Property(x => x.WhatsAppBusinessAccountId).HasColumnName("whatsAppBusinessAccountId").HasMaxLength(20).IsRequired();
         }
     }
 }

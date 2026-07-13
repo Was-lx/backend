@@ -157,6 +157,15 @@ internal sealed class WhatsAppWebhookProcessor(
         await db.Messages.AddAsync(inbound, cancellationToken);
 
         conversation.LastMessageAt = timestamp;
+        // The customer's inbound (re)opens the customer-service window; agent replies never touch it.
+        // Persist both the anchor and the derived expiry so the UI reads a stored value instead of a
+        // MAX() subquery. A free entry point (Click-to-WhatsApp ad / Page CTA — flagged by Meta's
+        // `referral` object) grants 72h instead of 24h. We anchor generously: if the heuristic is ever
+        // wrong, Meta refines it via expiration_timestamp (HandleStatusAsync) and, failing that, rejects
+        // an out-of-window send with 131047 so the send path reconciles it — see SendAsync.
+        var windowHours = message.TryGetProperty("referral", out _) ? 72 : 24;
+        conversation.LastCustomerMessageAt = timestamp;
+        conversation.WindowExpiresAt = timestamp.AddHours(windowHours);
         // Auto-reopen: a new inbound on a Resolved conversation moves it back to Reopened
         // (one of only three automatic transitions; the rest are manual.
         var reopened = conversation.Status == ConversationStatus.Resolved;
@@ -189,11 +198,20 @@ internal sealed class WhatsAppWebhookProcessor(
 
         message.Status = MapStatus(statusString, message.Status);
         message.UpdatedAt = DateTime.UtcNow;
+
+        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == message.ConversationId, cancellationToken);
+
+        // Sync Meta's authoritative window expiry when it rides along on the status. Extend forward
+        // only so it never pulls the inbound-anchored value earlier — it can only lengthen it, e.g.
+        // 24h → 72h for a free-entry-point conversation.
+        if (conversation is not null && ExtractConversationExpiry(status) is { } metaExpiry &&
+            (conversation.WindowExpiresAt is null || metaExpiry > conversation.WindowExpiresAt))
+            conversation.WindowExpiresAt = metaExpiry;
+
         await db.SaveChangesAsync(cancellationToken);
 
-        var tenantId = await db.Conversations.Where(c => c.Id == message.ConversationId)
-            .Select(c => c.TenantId).FirstOrDefaultAsync(cancellationToken);
-        await notifier.MessageStatusChangedAsync(tenantId, message.ConversationId, message.Id, message.Status.ToString(), cancellationToken);
+        if (conversation is not null)
+            await notifier.MessageStatusChangedAsync(conversation.TenantId, message.ConversationId, message.Id, message.Status.ToString(), cancellationToken);
     }
 
     /// <summary>
@@ -209,7 +227,7 @@ internal sealed class WhatsAppWebhookProcessor(
         if (string.IsNullOrWhiteSpace(wabaId))
             return;
 
-        var account = await db.WhatsAppAccounts.FirstOrDefaultAsync(x => x.whatsAppBusinessAccountId == wabaId, cancellationToken);
+        var account = await db.WhatsAppAccounts.FirstOrDefaultAsync(x => x.WhatsAppBusinessAccountId == wabaId, cancellationToken);
         if (account is null)
         {
             logger.LogWarning("Template status update: no WhatsApp account matches WABA id {WabaId}", wabaId);
@@ -322,6 +340,20 @@ internal sealed class WhatsAppWebhookProcessor(
         "failed" => MessageStatus.Failed,
         _ => current
     };
+
+    /// <summary>
+    /// Meta's authoritative window-close time from a status webhook (conversation.expiration_timestamp,
+    /// Unix seconds). Present only on the "sent" status, and on Graph API v24.0+ only for free-entry-point
+    /// windows (72h). Null when absent — the caller then keeps the inbound-anchored window.
+    /// </summary>
+    private static DateTime? ExtractConversationExpiry(JsonElement status)
+    {
+        if (status.TryGetProperty("conversation", out var conv) &&
+            conv.TryGetProperty("expiration_timestamp", out var expEl) &&
+            long.TryParse(expEl.GetString(), out var unix))
+            return DateTimeOffset.FromUnixTimeSeconds(unix).UtcDateTime;
+        return null;
+    }
 
     /// <summary>Text body, or a media message's caption (empty if it has none — never falls back to the media id).</summary>
     private static string ExtractCaption(JsonElement message, string? type)
