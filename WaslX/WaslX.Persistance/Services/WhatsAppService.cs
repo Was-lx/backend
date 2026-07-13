@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Application.Features.WhatsApp.Dtos;
+using WaslX.Application.Features.WhatsApp.Templates.Dtos;
 using WaslX.Domain.Entities;
 using WaslX.Domain.Results;
 using WaslX.Domain.SharedEnums;
@@ -45,7 +46,7 @@ internal sealed class WhatsAppService(
         account.AccessToken = tokenResult.Value.AccessToken;
         account.TokenExpiresAt = tokenResult.Value.ExpiresAt;
         account.PhoneNumberId = info.PhoneNumberId;
-        account.whatsAppBusinessAccountId = info.WhatsAppBusinessAccountId;
+        account.WhatsAppBusinessAccountId = info.WhatsAppBusinessAccountId;
         account.PhoneNumber = info.DisplayPhoneNumber;
         account.Status = WhatsAppAccountStatus.Connected;
         account.ConnectedAt = DateTime.UtcNow;
@@ -93,9 +94,9 @@ internal sealed class WhatsAppService(
             senderUserId,
             cancellationToken);
 
-    public Task<Result<SendMessageResult>> SendTemplateAsync(int? tenantId, string toPhone, string templateName, string languageCode, IReadOnlyList<string>? variables = null, int? senderUserId = null, CancellationToken cancellationToken = default) =>
+    public Task<Result<SendMessageResult>> SendTemplateAsync(int? tenantId, string toPhone, string templateName, string languageCode, TemplateSendParameters? parameters = null, int? senderUserId = null, CancellationToken cancellationToken = default) =>
         SendAsync(tenantId, toPhone, MessageType.Template, templateName,
-            (account) => graphApi.SendTemplateMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, templateName, languageCode, variables, cancellationToken),
+            (account) => graphApi.SendTemplateMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, templateName, languageCode, parameters, cancellationToken),
             senderUserId,
             cancellationToken);
 
@@ -140,9 +141,27 @@ internal sealed class WhatsAppService(
         if (account.Status != WhatsAppAccountStatus.Connected)
             return Result.Failure<SendMessageResult>(AppErrors.WhatsAppNotConnected);
 
+        // The 24-hour window is enforced by Meta, not by our DB: we always attempt the send and let
+        // Meta be the authority. If Meta rejects free-form with the window-closed error (131047), we
+        // reconcile our local mirror so the UI locks to templates.
         var sendResult = await send(account);
         if (sendResult.IsFailure)
+        {
+            if (sendResult.Error == AppErrors.WhatsAppWindowClosed)
+            {
+                // Reconcile only an EXISTING conversation — never materialise a phantom customer/
+                // conversation for a failed send to a phone that never messaged us (a closed window
+                // normally implies a prior inbound anyway). Look up read-only; skip silently if absent.
+                var closedConversation = await FindExistingConversationAsync(db, tid, toPhone, cancellationToken);
+                if (closedConversation is not null &&
+                    (closedConversation.WindowExpiresAt is null || closedConversation.WindowExpiresAt > DateTime.UtcNow))
+                {
+                    closedConversation.WindowExpiresAt = DateTime.UtcNow;
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+            }
             return Result.Failure<SendMessageResult>(sendResult.Error);
+        }
 
         var customer = await FindOrCreateCustomerAsync(db, tid, toPhone, cancellationToken);
         var conversation = await FindOrCreateConversationAsync(db, tid, account.Id, customer, cancellationToken);
@@ -165,10 +184,25 @@ internal sealed class WhatsAppService(
         await db.Messages.AddAsync(message, cancellationToken);
         conversation.LastMessageAt = now;
 
+        // A successful free-form (non-template) send is proof Meta still considers the 24h window open,
+        // so self-heal a stale/early local mirror instead of letting the UI lock the composer while Meta
+        // is happily accepting free text (e.g. after a transient 131047 or a missed inbound webhook). The
+        // window is anchored to the customer's last inbound — agent replies never extend it — so heal to
+        // LastCustomerMessageAt + 24h; if we never recorded an inbound, fall back to now + 24h since Meta
+        // just confirmed it is open. Only ever extend forward: never pull the expiry earlier (this keeps
+        // a 72h free-entry-point window intact and never shrinks Meta's authoritative value).
+        if (messageType != MessageType.Template)
+        {
+            var healed = conversation.LastCustomerMessageAt is { } anchor ? anchor.AddHours(24) : now.AddHours(24);
+            if (conversation.WindowExpiresAt is null || healed > conversation.WindowExpiresAt)
+                conversation.WindowExpiresAt = healed;
+        }
+
         // First agent reply advances the lifecycle to In Progress (one of the three automatic
-        // transitions — also covers the "reply while Pending → In Progress" edge case.
+        // transitions — also covers the "reply while Pending → In Progress" edge case. Resolved is
+        // included so an agent-initiated reply to a reused resolved thread doesn't stay Resolved.
         var advanced = conversation.Status is ConversationStatus.New or ConversationStatus.Assigned
-            or ConversationStatus.Reopened or ConversationStatus.Pending;
+            or ConversationStatus.Reopened or ConversationStatus.Pending or ConversationStatus.Resolved;
         if (advanced)
             conversation.Status = ConversationStatus.InProgress;
 
@@ -184,6 +218,22 @@ internal sealed class WhatsAppService(
                 conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);
 
         return Result.Success(new SendMessageResult(message.Id, conversation.Id, message.WhatsAppMessageId, message.Status.ToString()));
+    }
+
+    /// <summary>
+    /// Read-only lookup of an existing, non-deleted conversation for a phone (latest first). Used by the
+    /// window-closed reconcile so a failed out-of-window send never creates a phantom customer/conversation.
+    /// </summary>
+    private static async Task<Conversation?> FindExistingConversationAsync(ApplicationDbContext db, int tenantId, string phone, CancellationToken cancellationToken)
+    {
+        var customer = await db.Customers.FirstOrDefaultAsync(c => c.TenantId == tenantId && c.PhoneNumber == phone, cancellationToken);
+        if (customer is null)
+            return null;
+
+        return await db.Conversations
+            .Where(c => c.TenantId == tenantId && c.CustomerId == customer.Id && !c.IsDeleted)
+            .OrderByDescending(c => c.Id)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     // Shared find-or-create helpers (also used, conceptually, by inbound webhook processing).
@@ -208,8 +258,10 @@ internal sealed class WhatsAppService(
     internal static async Task<Conversation> FindOrCreateConversationAsync(ApplicationDbContext db, int tenantId, int whatsAppAccountId, Customer customer, CancellationToken cancellationToken)
     {
         // A soft-deleted conversation is never reused — a new message from this customer starts fresh.
+        // A Resolved conversation IS reused: the inbound handler auto-reopens it (Resolved -> Reopened)
+        // so a returning customer keeps one continuous thread instead of spawning a duplicate.
         var conversation = await db.Conversations
-            .Where(c => c.TenantId == tenantId && c.CustomerId == customer.Id && c.Status != ConversationStatus.Resolved && !c.IsDeleted)
+            .Where(c => c.TenantId == tenantId && c.CustomerId == customer.Id && !c.IsDeleted)
             .OrderByDescending(c => c.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -234,7 +286,7 @@ internal sealed class WhatsAppService(
         a.Id,
         a.PhoneNumber,
         a.PhoneNumberId,
-        a.whatsAppBusinessAccountId,
+        a.WhatsAppBusinessAccountId,
         a.Status.ToString(),
         a.ConnectedAt,
         a.TokenExpiresAt);

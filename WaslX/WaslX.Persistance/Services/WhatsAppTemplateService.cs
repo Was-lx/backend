@@ -138,6 +138,7 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
 
     private static TemplateDto Map(MetaTemplate t, TemplateReview? review)
     {
+        var header = t.Components.FirstOrDefault(c => c.Type.Equals("HEADER", StringComparison.OrdinalIgnoreCase));
         string? Text(string type) => t.Components.FirstOrDefault(c => c.Type.Equals(type, StringComparison.OrdinalIgnoreCase))?.Text;
         var buttons = t.Components
             .FirstOrDefault(c => c.Type.Equals("BUTTONS", StringComparison.OrdinalIgnoreCase))?.Buttons
@@ -161,7 +162,9 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
             FinalCategory: finalCategory,
             AllowCategoryChange: review?.AllowCategoryChange ?? false,
             ChangedByMeta: changedByMeta,
-            ReviewedAt: review?.ReviewedAt);
+            ReviewedAt: review?.ReviewedAt,
+            // Uppercased so the frontend can switch on TEXT/IMAGE/VIDEO/DOCUMENT reliably.
+            HeaderFormat: header?.Format?.ToUpperInvariant());
     }
 
     /// <summary>Resolves the tenant's connected account: tenant id + WABA id + access token, or a clear failure.</summary>
@@ -176,7 +179,7 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
         if (account.Status != WhatsAppAccountStatus.Connected)
             return Result.Failure<(int, string, string)>(AppErrors.WhatsAppNotConnected);
 
-        return Result.Success((tid, account.whatsAppBusinessAccountId, account.AccessToken));
+        return Result.Success((tid, account.WhatsAppBusinessAccountId, account.AccessToken));
     }
 
     [GeneratedRegex(@"\{\{(\d+)\}\}")]

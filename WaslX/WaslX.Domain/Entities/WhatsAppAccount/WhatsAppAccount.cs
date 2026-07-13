@@ -15,7 +15,7 @@ namespace WaslX.Domain.Entities
 
         public string PhoneNumberId { get; set; } = string.Empty;
 
-        public string whatsAppBusinessAccountId { get; set; } = string.Empty;
+        public string WhatsAppBusinessAccountId { get; set; } = string.Empty;
         public DateTime? TokenExpiresAt { get; set; }
         public Tenant Tenant { get; set; } = null!;
         public ICollection<Conversation> Conversations { get; set; } = new HashSet<Conversation>();

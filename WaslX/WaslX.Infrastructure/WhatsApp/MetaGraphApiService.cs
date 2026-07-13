@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WaslX.Application.Abstractions.WhatsApp;
+using WaslX.Application.Features.WhatsApp.Templates.Dtos;
 using WaslX.Domain.Results;
 using WaslX.Infrastructure.Settings;
 
@@ -142,21 +143,11 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
 
     public async Task<Result<string>> SendTemplateMessageAsync(
         string phoneNumberId, string accessToken, string toPhone, string templateName, string languageCode,
-        IReadOnlyList<string>? bodyParameters = null, CancellationToken cancellationToken = default)
+        TemplateSendParameters? parameters = null, CancellationToken cancellationToken = default)
     {
-        // Only attach a components array when the template actually has BODY variables to fill.
-        var components = bodyParameters is { Count: > 0 }
-            ? new object[]
-            {
-                new
-                {
-                    type = "body",
-                    parameters = bodyParameters.Select(p => new { type = "text", text = p }).ToArray()
-                }
-            }
-            : null;
+        var components = BuildTemplateComponents(parameters);
 
-        object template = components is null
+        object template = components.Count == 0
             ? new { name = templateName, language = new { code = languageCode } }
             : new { name = templateName, language = new { code = languageCode }, components };
 
@@ -169,6 +160,48 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
             template
         };
         return await PostMessageAsync(phoneNumberId, accessToken, payload, cancellationToken);
+    }
+
+    /// <summary>
+    /// Shapes the template <c>components</c> array Meta expects: a HEADER (text or media-by-link),
+    /// a BODY of text parameters, and one entry per dynamic BUTTON (URL suffix or AUTH copy-code).
+    /// Returns an empty list when there is nothing to fill (send omits the components array entirely).
+    /// </summary>
+    private static List<object> BuildTemplateComponents(TemplateSendParameters? p)
+    {
+        var components = new List<object>();
+        if (p is null)
+            return components;
+
+        if (p.Header is { } header)
+        {
+            object headerParam = header.Kind.Equals("text", StringComparison.OrdinalIgnoreCase)
+                ? new { type = "text", text = header.Text ?? string.Empty }
+                // Media header sent by public link (image/video/document) — Meta fetches it itself.
+                : new Dictionary<string, object?>
+                {
+                    ["type"] = header.Kind.ToLowerInvariant(),
+                    [header.Kind.ToLowerInvariant()] = new { link = header.MediaLink ?? string.Empty }
+                };
+            components.Add(new { type = "header", parameters = new[] { headerParam } });
+        }
+
+        if (p.Body is { Count: > 0 } body)
+            components.Add(new { type = "body", parameters = body.Select(t => new { type = "text", text = t }).ToArray() });
+
+        if (p.Buttons is { Count: > 0 } buttons)
+        {
+            foreach (var b in buttons)
+                components.Add(new
+                {
+                    type = "button",
+                    sub_type = b.SubType,          // "url" (dynamic URL suffix) or "copy_code" (AUTH OTP)
+                    index = b.Index.ToString(),    // Meta requires the index as a string
+                    parameters = new[] { new { type = "text", text = b.Text } }
+                });
+        }
+
+        return components;
     }
 
     public async Task<Result<IReadOnlyList<MetaTemplate>>> ListTemplatesAsync(
@@ -346,7 +379,13 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)
-                return LogAndFail<string>(AppErrors.WhatsAppSendFailed, "send message", body);
+            {
+                // Meta is the authority on the 24-hour window: error 131047 means the customer-service
+                // window is closed (>24h since the customer last replied), so only templates are allowed.
+                // Surface it distinctly so the caller can reconcile local state and prompt for a template.
+                var error = IsWindowClosedError(body) ? AppErrors.WhatsAppWindowClosed : AppErrors.WhatsAppSendFailed;
+                return LogAndFail<string>(error, "send message", body);
+            }
 
             using var doc = JsonDocument.Parse(body);
             var wamid = doc.RootElement.TryGetProperty("messages", out var messages) && messages.GetArrayLength() > 0
@@ -369,6 +408,27 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         return request;
+    }
+
+    /// <summary>
+    /// True when a failed send body carries Meta error code 131047 — the "re-engagement" error raised
+    /// when more than 24 hours have passed since the customer last replied (the customer-service window
+    /// is closed). Any parse failure returns false so the caller falls back to the generic send error.
+    /// </summary>
+    private static bool IsWindowClosedError(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            return doc.RootElement.TryGetProperty("error", out var error) &&
+                   error.TryGetProperty("code", out var codeEl) &&
+                   codeEl.ValueKind == JsonValueKind.Number &&
+                   codeEl.GetInt32() == 131047;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>Reads debug_token output and returns the WABA id from the whatsapp_business_management scope.</summary>

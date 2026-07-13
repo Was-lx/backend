@@ -5,8 +5,24 @@ public record ConnectWhatsAppRequest(string AuthorizationCode, string? WabaId, s
 
 public record SendWhatsAppTextRequest(string ToPhone, string Text);
 
-/// <summary><see cref="Variables"/> fill the template BODY placeholders ({{1}}, {{2}}, … in order).</summary>
-public record SendWhatsAppTemplateRequest(string ToPhone, string TemplateName, string LanguageCode, IReadOnlyList<string>? Variables = null);
+/// <summary>
+/// Sends a pre-approved template. <see cref="Header"/> fills a text/media header, <see cref="Body"/>
+/// fills the BODY placeholders ({{1}}, {{2}}, … in order), and <see cref="Buttons"/> fills dynamic
+/// URL buttons or the AUTHENTICATION OTP code. All parts optional.
+/// </summary>
+public record SendWhatsAppTemplateRequest(
+    string ToPhone,
+    string TemplateName,
+    string LanguageCode,
+    TemplateHeaderParamRequest? Header = null,
+    IReadOnlyList<string>? Body = null,
+    IReadOnlyList<TemplateButtonParamRequest>? Buttons = null);
+
+/// <summary>Header parameter: Kind is "text" (uses Text) or "image"/"video"/"document" (uses MediaLink).</summary>
+public record TemplateHeaderParamRequest(string Kind, string? Text, string? MediaLink);
+
+/// <summary>Dynamic button parameter: SubType "url" (URL suffix) or "copy_code" (AUTH OTP); Index is 0-based.</summary>
+public record TemplateButtonParamRequest(int Index, string SubType, string Text);
 
 /// <summary>Body for creating a message template on Meta.</summary>
 public record CreateTemplateRequest(

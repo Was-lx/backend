@@ -17,7 +17,6 @@ namespace WaslX.Domain.Entities
         public ConversationPriority Priority { get; set; }
         public DateTime? LastMessageAt { get; set; }
         public DateTime? LastCustomerMessageAt { get; set; }
-        public DateTime? ServiceWindowExpiresAt { get; set; }
         public DateTime? WindowExpiresAt { get; set; }
         public DateTime? LastReadAt { get; set; }
         public bool IsDeleted { get; set; }
