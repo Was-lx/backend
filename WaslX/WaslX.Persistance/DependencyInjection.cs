@@ -3,12 +3,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using WaslX.Application.Abstractions.AgentAccess;
+using WaslX.Application.Abstractions.Assignments;
 using WaslX.Application.Abstractions.Billing;
+using WaslX.Application.Abstractions.Channels;
+using WaslX.Application.Abstractions.ConversationStages;
+using WaslX.Application.Abstractions.Distribution;
+using WaslX.Application.Abstractions.Groups;
+using WaslX.Application.Abstractions.Identity;
 using WaslX.Application.Abstractions.Inbox;
+using WaslX.Application.Abstractions.Maintenance;
 using WaslX.Application.Abstractions.Permissions;
+using WaslX.Application.Abstractions.Presence;
 using WaslX.Application.Abstractions.Profile;
+using WaslX.Application.Abstractions.Tags;
 using WaslX.Application.Abstractions.Tenants;
 using WaslX.Application.Abstractions.WhatsApp;
+using WaslX.Application.Abstractions.WorkingHours;
 using WaslX.Domain.Contracts.Infrastructure;
 using WaslX.Infrastructure.Identity;
 using WaslX.Persistance.Data;
@@ -72,6 +83,35 @@ namespace WaslX.Persistance
             // Shared inbox (conversation list / history / reply / notes).
             services.AddScoped<IConversationService, ConversationService>();
             services.AddScoped<INoteService, NoteService>();
+
+            // Bridges the Identity user (GUID) to the domain User (int) for JWT inbox scoping.
+            services.AddScoped<IDomainUserDirectory, DomainUserDirectory>();
+
+            // Channels, distribution & working hours (Sprint 3).
+            services.AddScoped<IChannelService, ChannelService>();
+            services.AddScoped<IWorkingHoursService, WorkingHoursService>();
+            services.AddScoped<IAgentAccessService, AgentAccessService>();
+
+            // Groups / teams, stages & membership (Sprint 3).
+            services.AddScoped<IGroupService, GroupService>();
+
+            // Conversation stage pipeline + cross-team handoff (Sprint 3).
+            services.AddScoped<IConversationStageService, ConversationStageService>();
+
+            // Tags (Sprint 3).
+            services.AddScoped<ITagService, TagService>();
+
+            // Manual assignment / reassignment + unassigned queue (Sprint 3).
+            services.AddScoped<IAssignmentService, AssignmentService>();
+
+            // Agent presence & break state (drives Round Robin distribution).
+            services.AddScoped<IPresenceService, PresenceService>();
+
+            // Auto-distribution engine (Round Robin / working-hours routing + offline reassignment).
+            services.AddScoped<IDistributionService, DistributionService>();
+
+            // Recurring maintenance jobs (auto-resolve stale conversations + reassign offline agents).
+            services.AddScoped<IMaintenanceJobs, MaintenanceJobs>();
 
             return services;
         }

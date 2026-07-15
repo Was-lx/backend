@@ -135,6 +135,37 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("WaslX.Domain.Entities.AgentChannelAccess", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("agent_channel_access_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChannelId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChannelId");
+
+                    b.HasIndex("UserId", "ChannelId")
+                        .IsUnique();
+
+                    b.ToTable("agent_channel_access", (string)null);
+                });
+
             modelBuilder.Entity("WaslX.Domain.Entities.AgentPerformance", b =>
                 {
                     b.Property<int>("Id")
@@ -175,6 +206,68 @@ namespace WaslX.Persistance.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("agent_performances", (string)null);
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.AgentShift", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("agent_shift_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ShiftId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShiftId");
+
+                    b.HasIndex("UserId", "ShiftId")
+                        .IsUnique();
+
+                    b.ToTable("agent_shifts", (string)null);
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.AgentWhatsAppDistribution", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("agent_whatsapp_distribution_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WhatsAppAccountId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WhatsAppAccountId");
+
+                    b.HasIndex("UserId", "WhatsAppAccountId")
+                        .IsUnique();
+
+                    b.ToTable("agent_whatsapp_distribution", (string)null);
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.Assignment", b =>
@@ -415,6 +508,109 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("campaign_tags", (string)null);
                 });
 
+            modelBuilder.Entity("WaslX.Domain.Entities.Channel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("channel_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("channels", (string)null);
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.ChannelWhatsAppAccount", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("channel_whatsapp_account_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChannelId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("WhatsAppAccountId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WhatsAppAccountId");
+
+                    b.HasIndex("ChannelId", "WhatsAppAccountId")
+                        .IsUnique();
+
+                    b.ToTable("channel_whatsapp_accounts", (string)null);
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.CompanyWorkingDay", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("company_working_day_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly?>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsWorkingDay")
+                        .HasColumnType("bit");
+
+                    b.Property<TimeOnly?>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "DayOfWeek")
+                        .IsUnique();
+
+                    b.ToTable("company_working_days", (string)null);
+                });
+
             modelBuilder.Entity("WaslX.Domain.Entities.Conversation", b =>
                 {
                     b.Property<int>("Id")
@@ -650,6 +846,12 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsAssignableByDistribution")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1459,6 +1661,71 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("routing_decisions", (string)null);
                 });
 
+            modelBuilder.Entity("WaslX.Domain.Entities.Shift", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("shift_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("shifts", (string)null);
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.ShiftDay", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("shift_day_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("ShiftId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShiftId", "DayOfWeek")
+                        .IsUnique();
+
+                    b.ToTable("shift_days", (string)null);
+                });
+
             modelBuilder.Entity("WaslX.Domain.Entities.Stage", b =>
                 {
                     b.Property<int>("Id")
@@ -1771,6 +2038,12 @@ namespace WaslX.Persistance.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AutoResolveEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("AutoResolveHours")
+                        .HasColumnType("int");
+
                     b.Property<string>("BillingStatus")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1820,6 +2093,14 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("StickyReturningCustomer")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<DateTime?>("TrialEndsAt")
                         .HasColumnType("datetime2");
@@ -1884,6 +2165,18 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(320)
                         .HasColumnType("nvarchar(320)");
+
+                    b.Property<bool>("IsOnBreak")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsOnline")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsOwner")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1954,6 +2247,14 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("DistributeToOffline")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("DistributionMode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -1963,6 +2264,17 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PlatformName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<bool>("ReassignOnOffline")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("StartingGroupId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1985,6 +2297,8 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasColumnName("whatsAppBusinessAccountId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("StartingGroupId");
 
                     b.HasIndex("TenantId");
 
@@ -2201,7 +2515,7 @@ namespace WaslX.Persistance.Data.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "SUPERADMIN@WASLX.COM",
                             NormalizedUserName = "SUPERADMIN@WASLX.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEGqOjkSy/GRu5650ybMzOyd+dvFIH9qBp9dAXijs3OoGJ+Gh2l8E36oq2oCtmPZlVw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEJrzSuMWghbdNn3ZH3ksTtlmvAe7qL7jAofHkmIocpOkrcr3Qq329hkfxLXhyFoNBQ==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "f6a7b8c9-d0e1-4f2a-b3c4-5d6e7f809102",
                             TwoFactorEnabled = false,
@@ -2260,6 +2574,25 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("WaslX.Domain.Entities.AgentChannelAccess", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Channel", "Channel")
+                        .WithMany("AgentChannelAccesses")
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WaslX.Domain.Entities.User", "User")
+                        .WithMany("AgentChannelAccesses")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Channel");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("WaslX.Domain.Entities.AgentPerformance", b =>
                 {
                     b.HasOne("WaslX.Domain.Entities.User", "User")
@@ -2269,6 +2602,44 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.AgentShift", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Shift", "Shift")
+                        .WithMany("AgentShifts")
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WaslX.Domain.Entities.User", "User")
+                        .WithMany("AgentShifts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Shift");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.AgentWhatsAppDistribution", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.User", "User")
+                        .WithMany("AgentWhatsAppDistributions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WaslX.Domain.Entities.WhatsAppAccount", "WhatsAppAccount")
+                        .WithMany("AgentWhatsAppDistributions")
+                        .HasForeignKey("WhatsAppAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("WhatsAppAccount");
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.Assignment", b =>
@@ -2371,6 +2742,47 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("Campaign");
 
                     b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.Channel", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("Channels")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.ChannelWhatsAppAccount", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Channel", "Channel")
+                        .WithMany("ChannelWhatsAppAccounts")
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WaslX.Domain.Entities.WhatsAppAccount", "WhatsAppAccount")
+                        .WithMany("ChannelWhatsAppAccounts")
+                        .HasForeignKey("WhatsAppAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Channel");
+
+                    b.Navigation("WhatsAppAccount");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.CompanyWorkingDay", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("CompanyWorkingDays")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.Conversation", b =>
@@ -2614,6 +3026,28 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("RecommendedUser");
                 });
 
+            modelBuilder.Entity("WaslX.Domain.Entities.Shift", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("Shifts")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.ShiftDay", b =>
+                {
+                    b.HasOne("WaslX.Domain.Entities.Shift", "Shift")
+                        .WithMany("ShiftDays")
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Shift");
+                });
+
             modelBuilder.Entity("WaslX.Domain.Entities.Stage", b =>
                 {
                     b.HasOne("WaslX.Domain.Entities.Group", "Group")
@@ -2743,11 +3177,18 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.WhatsAppAccount", b =>
                 {
+                    b.HasOne("WaslX.Domain.Entities.Group", "StartingGroup")
+                        .WithMany()
+                        .HasForeignKey("StartingGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
                         .WithMany("WhatsAppAccounts")
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("StartingGroup");
 
                     b.Navigation("Tenant");
                 });
@@ -2794,6 +3235,13 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("CampaignTags");
 
                     b.Navigation("Recipients");
+                });
+
+            modelBuilder.Entity("WaslX.Domain.Entities.Channel", b =>
+                {
+                    b.Navigation("AgentChannelAccesses");
+
+                    b.Navigation("ChannelWhatsAppAccounts");
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.Conversation", b =>
@@ -2848,6 +3296,13 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("Users");
                 });
 
+            modelBuilder.Entity("WaslX.Domain.Entities.Shift", b =>
+                {
+                    b.Navigation("AgentShifts");
+
+                    b.Navigation("ShiftDays");
+                });
+
             modelBuilder.Entity("WaslX.Domain.Entities.Stage", b =>
                 {
                     b.Navigation("ConversationStageHistories");
@@ -2873,6 +3328,10 @@ namespace WaslX.Persistance.Data.Migrations
 
                     b.Navigation("Campaigns");
 
+                    b.Navigation("Channels");
+
+                    b.Navigation("CompanyWorkingDays");
+
                     b.Navigation("Conversations");
 
                     b.Navigation("Customers");
@@ -2889,6 +3348,8 @@ namespace WaslX.Persistance.Data.Migrations
 
                     b.Navigation("RolePermissions");
 
+                    b.Navigation("Shifts");
+
                     b.Navigation("Tags");
 
                     b.Navigation("Users");
@@ -2898,7 +3359,13 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.User", b =>
                 {
+                    b.Navigation("AgentChannelAccesses");
+
                     b.Navigation("AgentPerformances");
+
+                    b.Navigation("AgentShifts");
+
+                    b.Navigation("AgentWhatsAppDistributions");
 
                     b.Navigation("AssignedConversations");
 
@@ -2921,7 +3388,11 @@ namespace WaslX.Persistance.Data.Migrations
 
             modelBuilder.Entity("WaslX.Domain.Entities.WhatsAppAccount", b =>
                 {
+                    b.Navigation("AgentWhatsAppDistributions");
+
                     b.Navigation("Campaigns");
+
+                    b.Navigation("ChannelWhatsAppAccounts");
 
                     b.Navigation("Conversations");
                 });

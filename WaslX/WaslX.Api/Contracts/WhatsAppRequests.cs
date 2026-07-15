@@ -1,7 +1,19 @@
 namespace WaslX.Api.Contracts;
 
-/// <summary>Facebook Login for Business result forwarded from the SPA.</summary>
-public record ConnectWhatsAppRequest(string AuthorizationCode, string? WabaId, string? RedirectUri = null);
+/// <summary>
+/// Facebook Login for Business result forwarded from the SPA, plus the optional step-1 wizard
+/// fields (friendly platform name + distribution config). All step-1 fields are optional so
+/// existing callers that only send the OAuth result keep working.
+/// </summary>
+public record ConnectWhatsAppRequest(
+    string AuthorizationCode,
+    string? WabaId,
+    string? RedirectUri = null,
+    string? PlatformName = null,
+    string? DistributionMode = null,
+    bool? DistributeToOffline = null,
+    bool? ReassignOnOffline = null,
+    int? StartingGroupId = null);
 
 public record SendWhatsAppTextRequest(string ToPhone, string Text);
 

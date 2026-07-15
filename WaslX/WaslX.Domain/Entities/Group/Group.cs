@@ -15,5 +15,11 @@ namespace WaslX.Domain.Entities
         public ICollection<Stage> Stages { get; set; } = new HashSet<Stage>();
         public ICollection<UserGroup> UserGroups { get; set; } = new HashSet<UserGroup>();
         public ICollection<Conversation> Conversations { get; set; } = new HashSet<Conversation>();
+
+        // ── Sprint 3 ──
+        public bool IsDefault { get; set; }
+        // A group whose members do NOT receive new auto-distribution (they can still receive cross-team
+        // handoffs and reply to any chat). e.g. an Operations team fed only by handoffs from Sales.
+        public bool IsAssignableByDistribution { get; set; } = true;
     }
 }

@@ -46,5 +46,14 @@ namespace WaslX.Domain.Entities
         public ICollection<Conversation> Conversations { get; set; } = new HashSet<Conversation>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new HashSet<AuditLog>();
         public ICollection<Campaign> Campaigns { get; set; } = new HashSet<Campaign>();
+
+        // ── Sprint 3: workspace operational settings ──
+        public string TimeZoneId { get; set; } = "Egypt Standard Time";
+        public bool AutoResolveEnabled { get; set; } = true;
+        public int AutoResolveHours { get; set; } = 24;
+        public bool StickyReturningCustomer { get; set; } = true;
+        public ICollection<Channel> Channels { get; set; } = new HashSet<Channel>();
+        public ICollection<Shift> Shifts { get; set; } = new HashSet<Shift>();
+        public ICollection<CompanyWorkingDay> CompanyWorkingDays { get; set; } = new HashSet<CompanyWorkingDay>();
     }
 }

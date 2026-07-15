@@ -21,6 +21,15 @@ namespace WaslX.Persistance.Configurations
             builder.Property(x => x.PhoneNumberId).HasMaxLength(20).IsRequired();
             // Keep the original column name so the rename to PascalCase needs no migration.
             builder.Property(x => x.WhatsAppBusinessAccountId).HasColumnName("whatsAppBusinessAccountId").HasMaxLength(20).IsRequired();
+
+            // ── Sprint 3: distribution config ──
+            builder.Property(x => x.PlatformName).HasMaxLength(120);
+            // Stored as the enum name. New rows always get a valid value from the entity default
+            // (RoundRobin); legacy rows that were back-filled with "" are healed by a data migration
+            // (see the UPDATE run against whatsapp_accounts). No HasDefaultValue here — it would make
+            // ByAdmin (CLR default 0) unsettable due to EF's sentinel rule.
+            builder.Property(x => x.DistributionMode).HasConversion<string>().HasMaxLength(40);
+            builder.HasOne(x => x.StartingGroup).WithMany().HasForeignKey(x => x.StartingGroupId).OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

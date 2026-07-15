@@ -15,7 +15,7 @@ public class JwtTokenGenerator(IOptions<JwtSettings> jwtSettings) : IJwtTokenGen
 {
     private readonly JwtSettings _settings = jwtSettings.Value;
 
-    public AccessToken GenerateAccessToken(string userId, string email, string fullName, IEnumerable<string> roles, int? tenantId = null)
+    public AccessToken GenerateAccessToken(string userId, string email, string fullName, IEnumerable<string> roles, int? tenantId = null, int? domainUserId = null)
     {
         var expires = DateTime.UtcNow.AddMinutes(_settings.AccessTokenExpirationMinutes);
 
@@ -30,6 +30,11 @@ public class JwtTokenGenerator(IOptions<JwtSettings> jwtSettings) : IJwtTokenGen
 
         if (tenantId is not null)
             claims.Add(new Claim("tenantId", tenantId.Value.ToString()));
+
+        // Domain User.Id (int, 'users' table). API identifies principals by Identity GUID, but
+        // Conversation.AssignedUserId and the Sprint-3 join tables reference the domain user id.
+        if (domainUserId is not null)
+            claims.Add(new Claim("duid", domainUserId.Value.ToString()));
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 

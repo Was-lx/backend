@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WaslX.Domain.Entities;
+using WaslX.Infrastructure.Identity;
 using WaslX.Application.Abstractions.Inbox;
 using WaslX.Application.Abstractions.Media;
 using WaslX.Application.Abstractions.Realtime;
@@ -20,7 +21,8 @@ internal sealed class ConversationService(
     IConversationWindowService windowService) : IConversationService
 {
     public async Task<Result<PagedResult<ConversationListItemResponse>>> GetConversationsAsync(
-        int? tenantId, int currentUserId, bool isPrivileged, int page, int pageSize, CancellationToken cancellationToken = default)
+        int? tenantId, int currentUserId, bool isPrivileged, int page, int pageSize,
+        ConversationFilter? filter = null, CancellationToken cancellationToken = default)
     {
         if (tenantId is not { } tid)
             return Result.Failure<PagedResult<ConversationListItemResponse>>(AppErrors.NoTenantContext);
@@ -33,6 +35,26 @@ internal sealed class ConversationService(
         // Agents see only their own assignments; managers/admins see the whole tenant.
         if (!isPrivileged)
             query = query.Where(c => c.AssignedUserId == currentUserId);
+
+        // Resolve the optional assignee filter: the caller sends the Identity (GUID) id, but
+        // AssignedUserId stores the numeric domain user id. Map GUID -> email -> domain user id.
+        int? resolvedAssignedUserId = null;
+        if (!string.IsNullOrWhiteSpace(filter?.AssignedUserId))
+        {
+            var assigneeEmail = await db.Set<ApplicationUser>().AsNoTracking()
+                .Where(au => au.Id == filter.AssignedUserId)
+                .Select(au => au.Email)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrEmpty(assigneeEmail))
+                resolvedAssignedUserId = await db.Users.AsNoTracking()
+                    .Where(u => u.TenantId == tid && u.Email == assigneeEmail)
+                    .Select(u => (int?)u.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        // US-3.9: optional filters/search, applied AFTER tenant + role scoping so they can only
+        // narrow the caller's visible set. A null (or all-null) filter leaves the default inbox intact.
+        query = ApplyFilter(query, filter, resolvedAssignedUserId);
 
         var rows = await query
             .OrderByDescending(c => c.LastMessageAt)
@@ -124,7 +146,11 @@ internal sealed class ConversationService(
                     .Max(m => (DateTime?)m.Timestamp),
                 c.WindowExpiresAt,
                 c.WindowType,
-                MessageCount = db.Messages.Count(m => m.ConversationId == c.Id)
+                MessageCount = db.Messages.Count(m => m.ConversationId == c.Id),
+                c.GroupId,
+                GroupName = c.Group != null ? c.Group.Name : null,
+                c.CurrentStageId,
+                CurrentStageName = c.CurrentStage != null ? c.CurrentStage.Name : null
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -145,7 +171,8 @@ internal sealed class ConversationService(
             detail.Id, detail.Name, detail.PhoneNumber, detail.VipFlag, detail.Status.ToString(),
             allowed, detail.AssignedUserId, detail.AssignedUserName, detail.Tags,
             detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt,
-            windowState.WindowExpiresAt, windowState.IsOpen, windowState.WindowType.ToString(), (long)windowState.RemainingTime.TotalSeconds, detail.MessageCount));
+            windowState.WindowExpiresAt, windowState.IsOpen, windowState.WindowType.ToString(), (long)windowState.RemainingTime.TotalSeconds, detail.MessageCount,
+            detail.GroupId, detail.GroupName, detail.CurrentStageId, detail.CurrentStageName));
     }
 
     public async Task<Result<ConversationStatusResponse>> ChangeStatusAsync(
@@ -270,6 +297,57 @@ internal sealed class ConversationService(
 
         return await whatsApp.SendMediaAsync(
             tenantId, phone, mediaType, uploadResult.Value.Url, caption, fileName, contentType, senderUserId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Applies the optional US-3.9 filters to an already tenant- and role-scoped conversation query.
+    /// Every clause is additive (AND) and only runs when its input is provided, so a null / all-null
+    /// filter returns the query untouched (identical default inbox behavior). Free-text search matches
+    /// customer name, customer phone and message content — the message join stays tenant-scoped because
+    /// it is keyed on the conversation, which is already restricted to this tenant.
+    /// </summary>
+    private IQueryable<Conversation> ApplyFilter(IQueryable<Conversation> query, ConversationFilter? filter, int? resolvedAssignedUserId)
+    {
+        if (filter is null)
+            return query;
+
+        if (!string.IsNullOrWhiteSpace(filter.Status)
+            && Enum.TryParse<ConversationStatus>(filter.Status, ignoreCase: true, out var status))
+            query = query.Where(c => c.Status == status);
+
+        if (filter.Unassigned == true)
+            query = query.Where(c => c.AssignedUserId == null);
+        else if (resolvedAssignedUserId is { } assignedUserId)
+            query = query.Where(c => c.AssignedUserId == assignedUserId);
+
+        if (filter.GroupId is { } groupId)
+            query = query.Where(c => c.GroupId == groupId);
+
+        if (filter.WhatsAppAccountId is { } waAccountId)
+            query = query.Where(c => c.WhatsAppAccountId == waAccountId);
+
+        if (filter.CustomerId is { } customerId)
+            query = query.Where(c => c.CustomerId == customerId);
+
+        if (filter.TagId is { } tagId)
+            query = query.Where(c => c.ConversationTags.Any(t => t.TagId == tagId));
+
+        if (filter.DateFrom is { } dateFrom)
+            query = query.Where(c => c.LastMessageAt >= dateFrom);
+
+        if (filter.DateTo is { } dateTo)
+            query = query.Where(c => c.LastMessageAt <= dateTo);
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var like = $"%{filter.Search.Trim()}%";
+            query = query.Where(c =>
+                EF.Functions.Like(c.Customer.Name, like) ||
+                EF.Functions.Like(c.Customer.PhoneNumber, like) ||
+                db.Messages.Any(m => m.ConversationId == c.Id && EF.Functions.Like(m.Content, like)));
+        }
+
+        return query;
     }
 
     /// <summary>Tenant-scopes and RBAC-checks a conversation: managers/admins may access any; agents only their own.</summary>

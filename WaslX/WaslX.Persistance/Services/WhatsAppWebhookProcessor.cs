@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using WaslX.Application.Abstractions.Distribution;
 using WaslX.Application.Abstractions.Media;
 using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Abstractions.WhatsApp;
@@ -17,6 +18,7 @@ internal sealed class WhatsAppWebhookProcessor(
     IMediaStorageService mediaStorage,
     IInboxRealtimeNotifier notifier,
     IConversationWindowService windowService,
+    IDistributionService distribution,
     ILogger<WhatsAppWebhookProcessor> logger) : IWhatsAppWebhookProcessor
 {
     private static readonly HashSet<MessageType> MediaTypes =
@@ -103,10 +105,19 @@ internal sealed class WhatsAppWebhookProcessor(
             return;
         }
 
+        // Meta sends a sibling "contacts" array (wa_id + profile.name) alongside inbound messages.
+        // Parse it into a wa_id -> profile name map so we can label the customer with their WhatsApp
+        // display name instead of the raw number. Strictly additive; absent/malformed = empty map.
+        var profileNames = ExtractProfileNames(value);
+
         if (value.TryGetProperty("messages", out var messages) && messages.ValueKind == JsonValueKind.Array)
         {
             foreach (var message in messages.EnumerateArray())
-                await HandleInboundMessageAsync(account, message, cancellationToken);
+            {
+                var from = message.TryGetProperty("from", out var fromEl) ? fromEl.GetString() : null;
+                var profileName = from is not null && profileNames.TryGetValue(from, out var pn) ? pn : null;
+                await HandleInboundMessageAsync(account, message, profileName, cancellationToken);
+            }
         }
 
         if (value.TryGetProperty("statuses", out var statuses) && statuses.ValueKind == JsonValueKind.Array)
@@ -116,7 +127,7 @@ internal sealed class WhatsAppWebhookProcessor(
         }
     }
 
-    private async Task HandleInboundMessageAsync(WhatsAppAccount account, JsonElement message, CancellationToken cancellationToken)
+    private async Task HandleInboundMessageAsync(WhatsAppAccount account, JsonElement message, string? profileName, CancellationToken cancellationToken)
     {
         var from = message.TryGetProperty("from", out var fromEl) ? fromEl.GetString() : null;
         var waMessageId = message.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
@@ -135,6 +146,16 @@ internal sealed class WhatsAppWebhookProcessor(
             : DateTime.UtcNow;
 
         var customer = await WhatsAppService.FindOrCreateCustomerAsync(db, account.TenantId, from!, cancellationToken);
+
+        // Label the customer with their WhatsApp profile name when Meta provides one, but only if the
+        // customer is still unnamed or carries the raw phone as its name — never overwrite a name an
+        // agent set manually. Additive: persisted by the SaveChanges already made below.
+        if (!string.IsNullOrWhiteSpace(profileName) &&
+            (string.IsNullOrWhiteSpace(customer.Name) || customer.Name == customer.PhoneNumber))
+        {
+            customer.Name = profileName!;
+        }
+
         var conversation = await WhatsAppService.FindOrCreateConversationAsync(db, account.TenantId, account.Id, customer, cancellationToken);
 
         var inbound = new Message
@@ -173,6 +194,26 @@ internal sealed class WhatsAppWebhookProcessor(
         if (reopened)
             await notifier.ConversationChangedAsync(account.TenantId, new ConversationChangedPayload(
                 conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);
+
+        // Auto-distribution (Sprint 3, Phase B): route a brand-new, still-unassigned conversation to an
+        // eligible agent per the number's DistributionMode. Strictly additive and fully guarded — a
+        // distribution failure must never prevent the inbound message from being stored or the webhook
+        // from succeeding, so it is wrapped in try/catch and swallowed (logged and continue).
+        if (conversation.AssignedUserId is null && conversation.Status == ConversationStatus.New)
+        {
+            try
+            {
+                await distribution.AutoAssignAsync(conversation.Id, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Auto-assign failed for conversation {ConversationId} (tenant {TenantId}); message already stored",
+                    conversation.Id, account.TenantId);
+                // Drop any half-applied assignment from the shared change-tracker so it can't be
+                // re-flushed by a later message in this webhook batch (the inbound message is already committed).
+                db.ChangeTracker.Clear();
+            }
+        }
     }
 
     private async Task HandleStatusAsync(JsonElement status, CancellationToken cancellationToken)
@@ -384,6 +425,33 @@ internal sealed class WhatsAppWebhookProcessor(
             long.TryParse(expEl.GetString(), out var unix))
             return DateTimeOffset.FromUnixTimeSeconds(unix).UtcDateTime;
         return null;
+    }
+
+    /// <summary>
+    /// Builds a wa_id -> WhatsApp profile name map from the webhook value's "contacts" array
+    /// (each entry: { "wa_id": "...", "profile": { "name": "..." } }). Best-effort and additive:
+    /// returns an empty map when contacts are absent or malformed, and skips entries with a blank name.
+    /// </summary>
+    private static Dictionary<string, string> ExtractProfileNames(JsonElement value)
+    {
+        var map = new Dictionary<string, string>();
+        if (!value.TryGetProperty("contacts", out var contacts) || contacts.ValueKind != JsonValueKind.Array)
+            return map;
+
+        foreach (var contact in contacts.EnumerateArray())
+        {
+            var waId = contact.TryGetProperty("wa_id", out var waIdEl) ? waIdEl.GetString() : null;
+            if (string.IsNullOrWhiteSpace(waId))
+                continue;
+
+            var name = contact.TryGetProperty("profile", out var profile) && profile.TryGetProperty("name", out var nameEl)
+                ? nameEl.GetString()
+                : null;
+            if (!string.IsNullOrWhiteSpace(name))
+                map[waId] = name!;
+        }
+
+        return map;
     }
 
     /// <summary>Text body, or a media message's caption (empty if it has none — never falls back to the media id).</summary>

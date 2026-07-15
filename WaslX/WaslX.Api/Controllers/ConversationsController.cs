@@ -5,12 +5,15 @@ using WaslX.Api.Contracts;
 using WaslX.Api.Extensions;
 using WaslX.Application.Features.Conversations.ChangeConversationStatus;
 using WaslX.Application.Features.Conversations.DeleteConversation;
+using WaslX.Application.Features.Conversations.Dtos;
 using WaslX.Application.Features.Conversations.GetConversationDetail;
 using WaslX.Application.Features.Conversations.GetConversationMessages;
 using WaslX.Application.Features.Conversations.GetConversations;
 using WaslX.Application.Features.Conversations.MarkConversationRead;
 using WaslX.Application.Features.Conversations.SendConversationMedia;
 using WaslX.Application.Features.Conversations.SendConversationMessage;
+using WaslX.Application.Features.ConversationStages;
+using WaslX.Application.Features.ConversationStages.Dtos;
 using WaslX.Application.Features.Notes.AddNote;
 using WaslX.Application.Features.Notes.GetNotes;
 using WaslX.Application.Features.WhatsApp.Dtos;
@@ -23,11 +26,30 @@ namespace WaslX.Api.Controllers;
 [Authorize]
 public class ConversationsController(ISender sender) : ControllerBase
 {
-    /// <summary>Lists the caller's shared-inbox conversations (agents see own; managers/admins see all).</summary>
+    /// <summary>
+    /// Lists the caller's shared-inbox conversations (agents see own; managers/admins see all).
+    /// Optional US-3.9 query params filter/search the list server-side; omitting them all yields the default inbox.
+    /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetConversations([FromQuery] int page = 1, [FromQuery] int pageSize = 30, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetConversations(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 30,
+        [FromQuery] string? status = null,
+        [FromQuery] string? assignedUserId = null,
+        [FromQuery] bool? unassigned = null,
+        [FromQuery] int? groupId = null,
+        [FromQuery] int? tagId = null,
+        [FromQuery] int? whatsAppAccountId = null,
+        [FromQuery] int? customerId = null,
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetConversationsQuery(User.GetTenantId(), CurrentUserId(), IsPrivileged(), page, pageSize);
+        var filter = new ConversationFilter(
+            status, assignedUserId, unassigned, groupId, tagId,
+            whatsAppAccountId, customerId, dateFrom, dateTo, search);
+        var query = new GetConversationsQuery(User.GetTenantId(), CurrentUserId(), IsPrivileged(), page, pageSize, filter);
         return (await sender.Send(query, cancellationToken)).ToActionResult();
     }
 
@@ -117,11 +139,31 @@ public class ConversationsController(ISender sender) : ControllerBase
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }
 
-    // NOTE: the JWT NameIdentifier is the Identity (GUID) user id, whereas Conversation.AssignedUserId
-    // is the domain User.Id (int). Until an Identity->domain-user id claim is added, the agent-scoping
-    // filter only works for the privileged path; unassigned conversations correctly surface to
-    // managers/admins only. Assignment (and a proper domain-user-id claim) is a follow-up story.
-    private int CurrentUserId() => int.TryParse(User.GetUserId(), out var id) ? id : 0;
+    /// <summary>Routes a conversation into a group / team; it lands on that group's first stage.</summary>
+    [HttpPost("{id:int}/route")]
+    public async Task<IActionResult> RouteToGroup(int id, [FromBody] RouteToGroupRequest request, CancellationToken cancellationToken)
+    {
+        var command = new RouteConversationToGroupCommand(User.GetTenantId(), id, request.GroupId, CurrentUserId(), User.GetEmail(), IsPrivileged());
+        return (await sender.Send(command, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Moves a conversation to a stage within its current group's pipeline.</summary>
+    [HttpPost("{id:int}/stage")]
+    public async Task<IActionResult> MoveToStage(int id, [FromBody] MoveToStageRequest request, CancellationToken cancellationToken)
+    {
+        var command = new MoveConversationToStageCommand(User.GetTenantId(), id, request.StageId, CurrentUserId(), User.GetEmail(), IsPrivileged());
+        return (await sender.Send(command, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Cross-team handoff: transfers a conversation to another team and clears its current assignment.</summary>
+    [HttpPost("{id:int}/handoff")]
+    public async Task<IActionResult> Handoff(int id, [FromBody] HandoffRequest request, CancellationToken cancellationToken)
+    {
+        var command = new HandoffConversationCommand(User.GetTenantId(), id, request.TargetGroupId, CurrentUserId(), User.GetEmail(), IsPrivileged());
+        return (await sender.Send(command, cancellationToken)).ToActionResult();
+    }
+
+    private int CurrentUserId() => User.GetDomainUserId() ?? 0;
 
     private bool IsPrivileged() => User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("SuperAdmin");
 }
