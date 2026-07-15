@@ -7,6 +7,7 @@ using WaslX.Application.Abstractions.Media;
 using WaslX.Application.Features.WhatsApp.ConnectAccount;
 using WaslX.Application.Features.WhatsApp.Disconnect;
 using WaslX.Application.Features.WhatsApp.GetAccount;
+using WaslX.Application.Features.WhatsApp.GetAccounts;
 using WaslX.Application.Features.WhatsApp.SendTemplateMessage;
 using WaslX.Application.Features.WhatsApp.SendTextMessage;
 using WaslX.Application.Features.WhatsApp.Templates.Dtos;
@@ -23,7 +24,16 @@ public class WhatsAppController(ISender sender, IMediaStorageService mediaStorag
     [HttpPost("connect")]
     public async Task<IActionResult> Connect([FromBody] ConnectWhatsAppRequest request, CancellationToken cancellationToken)
     {
-        var command = new ConnectWhatsAppAccountCommand(User.GetTenantId(), request.AuthorizationCode, request.WabaId, request.RedirectUri);
+        var command = new ConnectWhatsAppAccountCommand(
+            User.GetTenantId(),
+            request.AuthorizationCode,
+            request.WabaId,
+            request.RedirectUri,
+            request.PlatformName,
+            request.DistributionMode,
+            request.DistributeToOffline,
+            request.ReassignOnOffline,
+            request.StartingGroupId);
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }
 
@@ -31,6 +41,11 @@ public class WhatsAppController(ISender sender, IMediaStorageService mediaStorag
     [HttpGet("account")]
     public async Task<IActionResult> GetAccount(CancellationToken cancellationToken) =>
         (await sender.Send(new GetWhatsAppAccountQuery(User.GetTenantId()), cancellationToken)).ToActionResult();
+
+    /// <summary>Lists ALL of the tenant's WhatsApp numbers as a light list (never the access token).</summary>
+    [HttpGet("accounts")]
+    public async Task<IActionResult> GetAccounts(CancellationToken cancellationToken) =>
+        (await sender.Send(new GetWhatsAppAccountsQuery(User.GetTenantId()), cancellationToken)).ToActionResult();
 
     [HttpPost("disconnect")]
     public async Task<IActionResult> Disconnect(CancellationToken cancellationToken) =>

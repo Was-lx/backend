@@ -21,6 +21,7 @@ internal class AuthSerive(
     UserManager<ApplicationUser> userManager,
     RoleManager<ApplicationRole> roleManager,
     IJwtTokenGenerator jwtTokenGenerator,
+    IDomainUserDirectory domainUsers,
     IEmailSender emailSender,
     IOptions<AppSettings> appSettings,
     ILogger<AuthSerive> logger) : IAuthService
@@ -28,6 +29,7 @@ internal class AuthSerive(
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
     private readonly IJwtTokenGenerator _jwt = jwtTokenGenerator;
+    private readonly IDomainUserDirectory _domainUsers = domainUsers;
     private readonly IEmailSender _emailSender = emailSender;
     private readonly AppSettings _appSettings = appSettings.Value;
     private readonly ILogger<AuthSerive> _logger = logger;
@@ -353,6 +355,10 @@ internal class AuthSerive(
         if (user is null || IsCrossTenant(user, callerTenantId))
             return Result.Failure(UserErrors.UserNotFound);
 
+        // The workspace owner's role is locked and can't be reassigned.
+        if (await IsTargetOwnerAsync(user))
+            return Result.Failure(AppErrors.OwnerLocked);
+
         // Each user has exactly one role: replace any existing roles.
         var currentRoles = await _userManager.GetRolesAsync(user);
         if (currentRoles.Count > 0)
@@ -373,11 +379,21 @@ internal class AuthSerive(
         if (user is null || IsCrossTenant(user, callerTenantId))
             return Result.Failure(UserErrors.UserNotFound);
 
+        // The workspace owner can't be disabled (nor re-enabled — the owner is never disabled).
+        if (await IsTargetOwnerAsync(user))
+            return Result.Failure(AppErrors.OwnerLocked);
+
         user.IsDisabled = isDisabled;
         await _userManager.UpdateAsync(user);
 
         return Result.Success();
     }
+
+    /// <summary>Resolves whether the target Identity user is the domain-level workspace owner (read-only).</summary>
+    private async Task<bool> IsTargetOwnerAsync(ApplicationUser user) =>
+        user.TenantId is { } tid
+        && !string.IsNullOrEmpty(user.Email)
+        && await _domainUsers.IsOwnerAsync(tid, user.Email!);
 
     /// <summary>
     /// A tenant admin (callerTenantId != null) may only touch users inside their own
@@ -400,6 +416,11 @@ internal class AuthSerive(
         foreach (var user in users)
         {
             var roles = await _userManager.GetRolesAsync(user);
+
+            // Resolve the owner flag from the domain user (by tenant + email); read-only, never creates a row.
+            var isOwner = user.TenantId is { } tid && !string.IsNullOrEmpty(user.Email)
+                && await _domainUsers.IsOwnerAsync(tid, user.Email!, cancellationToken);
+
             responses.Add(new UserResponse(
                 user.Id,
                 user.Email!,
@@ -408,7 +429,8 @@ internal class AuthSerive(
                 user.TenantId,
                 roles.ToList(),
                 user.IsDisabled,
-                user.EmailConfirmed));
+                user.EmailConfirmed,
+                isOwner));
         }
 
         return Result.Success<IReadOnlyList<UserResponse>>(responses);
@@ -431,7 +453,13 @@ internal class AuthSerive(
     {
         var roles = await _userManager.GetRolesAsync(user);
 
-        var accessToken = _jwt.GenerateAccessToken(user.Id, user.Email!, user.FullName, roles, user.TenantId);
+        // Embed the domain User.Id (int) so the inbox/assignment paths can scope by it. Only tenant users
+        // have a domain user row (SuperAdmin has no tenant); resolve/find-or-create it by tenant + email.
+        int? domainUserId = user.TenantId is { } tid && !string.IsNullOrEmpty(user.Email)
+            ? await _domainUsers.GetOrCreateDomainUserIdAsync(tid, user.Email!, user.FullName)
+            : null;
+
+        var accessToken = _jwt.GenerateAccessToken(user.Id, user.Email!, user.FullName, roles, user.TenantId, domainUserId);
         var refreshToken = _jwt.GenerateRefreshToken();
 
         user.RefreshTokens.Add(new RefreshToken

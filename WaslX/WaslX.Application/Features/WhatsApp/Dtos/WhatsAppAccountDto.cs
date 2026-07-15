@@ -10,6 +10,15 @@ public record WhatsAppAccountDto(
     DateTime ConnectedAt,
     DateTime? TokenExpiresAt);
 
+/// <summary>Light list item for a tenant's WhatsApp numbers (rail / channels screen) — never exposes the access token.</summary>
+public record WhatsAppAccountListItemDto(
+    int Id,
+    string PhoneNumber,
+    string PlatformName,
+    string Status,
+    string DistributionMode,
+    DateTime ConnectedAt);
+
 /// <summary>Outcome of an outbound send: the persisted message plus Meta's message id.</summary>
 public record SendMessageResult(
     int MessageId,

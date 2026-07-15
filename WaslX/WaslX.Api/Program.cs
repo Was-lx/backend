@@ -1,6 +1,7 @@
 using Hangfire;
 using Serilog;
 using WaslX.Api;
+using WaslX.Application.Abstractions.Maintenance;
 using WaslX.Api.Extensions;
 using WaslX.Api.Hubs;
 using WaslX.Application;
@@ -50,6 +51,18 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseHangfireDashboard(app.Configuration["Hangfire:DashboardPath"] ?? "/hangfire");
+
+// Recurring distribution-engine maintenance. Resolved from DI per run (IMaintenanceJobs is scoped).
+// Auto-resolve stale conversations every 30 minutes; reassign work off offline agents every 10 minutes.
+RecurringJob.AddOrUpdate<IMaintenanceJobs>(
+    "auto-resolve-stale-conversations",
+    job => job.AutoResolveAsync(CancellationToken.None),
+    "*/30 * * * *");
+
+RecurringJob.AddOrUpdate<IMaintenanceJobs>(
+    "reassign-offline-agents",
+    job => job.ReassignOfflineAgentsAsync(CancellationToken.None),
+    "*/10 * * * *");
 
 app.MapControllers();
 

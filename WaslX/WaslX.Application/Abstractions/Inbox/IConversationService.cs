@@ -12,8 +12,10 @@ namespace WaslX.Application.Abstractions.Inbox;
 public interface IConversationService
 {
     /// <param name="isPrivileged">Manager/Admin see all tenant conversations; agents see only their own assignments.</param>
+    /// <param name="filter">Optional server-side filters (status/assignment/group/tag/number/customer/date-range/free-text). Null = default inbox.</param>
     Task<Result<PagedResult<ConversationListItemResponse>>> GetConversationsAsync(
-        int? tenantId, int currentUserId, bool isPrivileged, int page, int pageSize, CancellationToken cancellationToken = default);
+        int? tenantId, int currentUserId, bool isPrivileged, int page, int pageSize,
+        ConversationFilter? filter = null, CancellationToken cancellationToken = default);
 
     Task<Result<PagedResult<MessageResponse>>> GetMessagesAsync(
         int? tenantId, int currentUserId, bool isPrivileged, int conversationId, int? before, int pageSize, CancellationToken cancellationToken = default);

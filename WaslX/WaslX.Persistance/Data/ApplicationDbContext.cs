@@ -49,7 +49,15 @@ namespace WaslX.Persistance.Data
         public DbSet<WhatsAppAccount> WhatsAppAccounts { get; set; }
         public DbSet<WhatsAppWebhookLog> WhatsAppWebhookLogs { get; set; }
 
-
+        // ── Sprint 3: channels, distribution & working hours ──
+        public DbSet<Channel> Channels { get; set; }
+        public DbSet<ChannelWhatsAppAccount> ChannelWhatsAppAccounts { get; set; }
+        public DbSet<AgentChannelAccess> AgentChannelAccesses { get; set; }
+        public DbSet<AgentWhatsAppDistribution> AgentWhatsAppDistributions { get; set; }
+        public DbSet<CompanyWorkingDay> CompanyWorkingDays { get; set; }
+        public DbSet<Shift> Shifts { get; set; }
+        public DbSet<ShiftDay> ShiftDays { get; set; }
+        public DbSet<AgentShift> AgentShifts { get; set; }
     }
 }
 

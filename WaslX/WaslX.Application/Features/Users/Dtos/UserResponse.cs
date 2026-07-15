@@ -8,4 +8,5 @@ public record UserResponse(
     int? TenantId,
     IReadOnlyList<string> Roles,
     bool IsDisabled,
-    bool IsEmailConfirmed);
+    bool IsEmailConfirmed,
+    bool IsOwner);

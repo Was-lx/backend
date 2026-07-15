@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using WaslX.Application.Abstractions.Identity;
 using WaslX.Application.Abstractions.Permissions;
 using WaslX.Domain.Entities;
 using WaslX.Domain.SharedEnums;
@@ -27,9 +28,11 @@ public static class DemoDataSeeder
         var db = sp.GetRequiredService<ApplicationDbContext>();
         var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var permissions = sp.GetRequiredService<IPermissionService>();
+        var domainUsers = sp.GetRequiredService<IDomainUserDirectory>();
 
         await SeedPlansAsync(db);
-        await SeedDemoWorkspaceAsync(db, userManager, permissions, app.Logger);
+        await SeedDemoWorkspaceAsync(db, userManager, permissions, domainUsers, app.Logger);
+        await HealTenantOwnersAsync(db, userManager, domainUsers, app.Logger);
     }
 
     /// <summary>The public pricing plans. Sign-up can't work without at least one plan.</summary>
@@ -69,7 +72,7 @@ public static class DemoDataSeeder
 
     /// <summary>One ready demo tenant on the Growth plan + its Admin (known password, so it's a working login).</summary>
     private static async Task SeedDemoWorkspaceAsync(
-        ApplicationDbContext db, UserManager<ApplicationUser> userManager, IPermissionService permissions, ILogger logger)
+        ApplicationDbContext db, UserManager<ApplicationUser> userManager, IPermissionService permissions, IDomainUserDirectory domainUsers, ILogger logger)
     {
         // If the demo admin already exists, self-heal: force its password back to the
         // documented one, unlock it, and confirm its email — so the demo login always
@@ -127,7 +130,63 @@ public static class DemoDataSeeder
         await userManager.AddToRoleAsync(admin, DefaultRoles.Admin);
         await permissions.SeedDefaultMatrixAsync(tenant.Id);
 
+        // The first Admin is the workspace owner (locked role, can't be disabled).
+        await domainUsers.EnsureOwnerAsync(tenant.Id, DemoAdminEmail, admin.FullName);
+
         logger.LogInformation("Seeded demo workspace '{tenant}' with Admin login {email} / {password}",
             DemoTenantName, DemoAdminEmail, DemoAdminPassword);
+    }
+
+    /// <summary>
+    /// One-time, idempotent backfill: for any tenant that has no owner yet, mark the oldest Admin as
+    /// the workspace owner. Runs safely on every startup — it no-ops once every tenant has an owner.
+    /// </summary>
+    private static async Task HealTenantOwnersAsync(
+        ApplicationDbContext db, UserManager<ApplicationUser> userManager, IDomainUserDirectory domainUsers, ILogger logger)
+    {
+        // Tenants that already have an owner need no healing.
+        var tenantsWithOwner = await db.Users
+            .Where(u => u.IsOwner)
+            .Select(u => u.TenantId)
+            .Distinct()
+            .ToListAsync();
+        var owned = tenantsWithOwner.ToHashSet();
+
+        // Group every Admin (Identity) by tenant; a tenant's owner is its oldest Admin.
+        var admins = await userManager.GetUsersInRoleAsync(DefaultRoles.Admin);
+        var byTenant = admins
+            .Where(u => u.TenantId is not null && !string.IsNullOrEmpty(u.Email))
+            .GroupBy(u => u.TenantId!.Value);
+
+        foreach (var group in byTenant)
+        {
+            var tenantId = group.Key;
+            if (owned.Contains(tenantId))
+                continue;
+
+            var emails = group.Select(u => u.Email!).ToList();
+
+            // Prefer the oldest existing domain user row among the tenant's admins.
+            var existingOldest = await db.Users
+                .Where(u => u.TenantId == tenantId && emails.Contains(u.Email))
+                .OrderBy(u => u.CreatedAt)
+                .ThenBy(u => u.Id)
+                .FirstOrDefaultAsync();
+
+            if (existingOldest is not null)
+            {
+                existingOldest.IsOwner = true;
+                await db.SaveChangesAsync();
+                logger.LogInformation("Owner backfill: marked domain user {userId} as owner of tenant {tenantId}", existingOldest.Id, tenantId);
+            }
+            else
+            {
+                // No domain row yet: create one for a deterministic admin and flag it.
+                var email = emails.OrderBy(e => e, StringComparer.OrdinalIgnoreCase).First();
+                var admin = group.First(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase));
+                await domainUsers.EnsureOwnerAsync(tenantId, email, admin.FullName);
+                logger.LogInformation("Owner backfill: created + marked owner {email} for tenant {tenantId}", email, tenantId);
+            }
+        }
     }
 }

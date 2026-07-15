@@ -43,6 +43,32 @@ public static class AppErrors
     public static readonly Error ConversationAccessDenied = new("Conversation.AccessDenied", "You do not have access to this conversation", 403);
     public static readonly Error ConversationInvalidTransition = new("Conversation.InvalidTransition", "That status change is not allowed from the current status", 400);
     public static readonly Error UserContextNotResolved = new("User.ContextNotResolved", "Could not resolve the current user for this workspace", 400);
+    public static readonly Error OwnerLocked = new("User.OwnerLocked", "The workspace owner's role cannot be changed and the owner cannot be disabled.", 403);
+
+    // Channels (Sprint 3)
+    public static readonly Error ChannelNotFound = new("Channel.NotFound", "Channel not found", 404);
+    public static readonly Error ChannelNameRequired = new("Channel.NameRequired", "A channel name is required", 400);
+    public static readonly Error DuplicateChannelName = new("Channel.DuplicateName", "A channel with this name already exists", 409);
+
+    // Groups / teams & stages (Sprint 3)
+    public static readonly Error GroupNotFound = new("Group.NotFound", "Group not found", 404);
+    public static readonly Error GroupNameRequired = new("Group.NameRequired", "A group name is required", 400);
+    public static readonly Error DuplicateGroupName = new("Group.DuplicateName", "A group with this name already exists", 409);
+    public static readonly Error GroupInUse = new("Group.InUse", "This group or one of its stages is still referenced by conversations and cannot be deleted", 409);
+    public static readonly Error StageNotFound = new("Stage.NotFound", "Stage not found", 404);
+    public static readonly Error StageNameRequired = new("Stage.NameRequired", "A stage name is required", 400);
+    public static readonly Error StageNotInGroup = new("Stage.NotInGroup", "That stage does not belong to the conversation's current group", 400);
+
+    // Tags (Sprint 3)
+    public static readonly Error TagNotFound = new("Tag.NotFound", "Tag not found", 404);
+    public static readonly Error TagNameRequired = new("Tag.NameRequired", "A tag name is required", 400);
+    public static readonly Error DuplicateTagName = new("Tag.DuplicateName", "A tag with this name already exists", 409);
+
+    // Working hours & shifts (Sprint 3)
+    public static readonly Error ShiftNotFound = new("Shift.NotFound", "Shift not found", 404);
+    public static readonly Error ShiftNameRequired = new("Shift.NameRequired", "A shift name is required", 400);
+    public static readonly Error ShiftOutsideCompanyHours = new("Shift.OutsideCompanyHours", "A shift day must fall on a company working day and stay within its hours", 400);
+    public static readonly Error InvalidWorkingHours = new("WorkingHours.Invalid", "Invalid working hours; check the day and that the end time is after the start time", 400);
 
     // Media
     public static readonly Error MediaUploadFailed = new("Media.UploadFailed", "Could not upload the file", 502);

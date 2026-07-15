@@ -18,7 +18,7 @@ internal sealed class WhatsAppService(
     IConversationWindowService windowService,
     ILogger<WhatsAppService> logger) : IWhatsAppService
 {
-    public async Task<Result<WhatsAppAccountDto>> ConnectAsync(int? tenantId, string authorizationCode, string? wabaId, string? redirectUri = null, CancellationToken cancellationToken = default)
+    public async Task<Result<WhatsAppAccountDto>> ConnectAsync(int? tenantId, string authorizationCode, string? wabaId, string? redirectUri = null, WhatsAppConnectSettings? settings = null, CancellationToken cancellationToken = default)
     {
         if (tenantId is not { } tid)
             return Result.Failure<WhatsAppAccountDto>(AppErrors.NoTenantContext);
@@ -52,6 +52,37 @@ internal sealed class WhatsAppService(
         account.Status = WhatsAppAccountStatus.Connected;
         account.ConnectedAt = DateTime.UtcNow;
 
+        // ── Step-1 wizard settings (friendly name + distribution config) ──────────────────
+        // Purely additive: only applied when the caller sends them, so an OAuth-only re-connect
+        // never clobbers previously saved values, and a brand-new account keeps its entity
+        // defaults (PlatformName="", RoundRobin, DistributeToOffline=true, ReassignOnOffline=false).
+        if (settings is not null)
+        {
+            if (settings.PlatformName is not null)
+                account.PlatformName = settings.PlatformName;
+
+            // Only apply the mode when the caller actually sent it, so a bare OAuth re-connect never
+            // resets a number that was configured as ByAdmin / working-hours back to RoundRobin.
+            if (!string.IsNullOrWhiteSpace(settings.DistributionMode))
+                account.DistributionMode = Enum.TryParse<DistributionMode>(settings.DistributionMode, ignoreCase: true, out var mode)
+                    ? mode
+                    : DistributionMode.RoundRobin;
+
+            if (settings.DistributeToOffline is { } distributeToOffline)
+                account.DistributeToOffline = distributeToOffline;
+
+            if (settings.ReassignOnOffline is { } reassignOnOffline)
+                account.ReassignOnOffline = reassignOnOffline;
+
+            // Only bind a starting group that actually belongs to this tenant; ignore otherwise.
+            if (settings.StartingGroupId is { } startingGroupId)
+            {
+                var groupExists = await db.Groups.AnyAsync(g => g.Id == startingGroupId && g.TenantId == tid, cancellationToken);
+                if (groupExists)
+                    account.StartingGroupId = startingGroupId;
+            }
+        }
+
         if (isNew)
             await db.WhatsAppAccounts.AddAsync(account, cancellationToken);
         else
@@ -72,6 +103,26 @@ internal sealed class WhatsAppService(
         return account is null
             ? Result.Failure<WhatsAppAccountDto>(AppErrors.WhatsAppAccountNotFound)
             : Result.Success(Map(account));
+    }
+
+    public async Task<Result<IReadOnlyList<WhatsAppAccountListItemDto>>> GetAccountsAsync(int? tenantId, CancellationToken cancellationToken = default)
+    {
+        if (tenantId is not { } tid)
+            return Result.Failure<IReadOnlyList<WhatsAppAccountListItemDto>>(AppErrors.NoTenantContext);
+
+        var accounts = await db.WhatsAppAccounts.AsNoTracking()
+            .Where(x => x.TenantId == tid)
+            .OrderBy(x => x.Id)
+            .Select(x => new WhatsAppAccountListItemDto(
+                x.Id,
+                x.PhoneNumber,
+                x.PlatformName,
+                x.Status.ToString(),
+                x.DistributionMode.ToString(),
+                x.ConnectedAt))
+            .ToListAsync(cancellationToken);
+
+        return Result.Success<IReadOnlyList<WhatsAppAccountListItemDto>>(accounts);
     }
 
     public async Task<Result> DisconnectAsync(int? tenantId, CancellationToken cancellationToken = default)

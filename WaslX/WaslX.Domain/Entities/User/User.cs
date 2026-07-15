@@ -24,5 +24,15 @@ namespace WaslX.Domain.Entities
         public ICollection<RoutingDecision> RoutingDecisions { get; set; } = new HashSet<RoutingDecision>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new HashSet<AuditLog>();
         public ICollection<Campaign> CreatedCampaigns { get; set; } = new HashSet<Campaign>();
+
+        // ── Sprint 3: presence & availability (drive Round Robin distribution) ──
+        public bool IsOnline { get; set; }
+        public DateTime? LastSeenAt { get; set; }
+        public bool IsOnBreak { get; set; }
+        // The tenant's owner (first admin). Their role is locked — it can't be changed or removed.
+        public bool IsOwner { get; set; }
+        public ICollection<AgentChannelAccess> AgentChannelAccesses { get; set; } = new HashSet<AgentChannelAccess>();
+        public ICollection<AgentWhatsAppDistribution> AgentWhatsAppDistributions { get; set; } = new HashSet<AgentWhatsAppDistribution>();
+        public ICollection<AgentShift> AgentShifts { get; set; } = new HashSet<AgentShift>();
     }
 }

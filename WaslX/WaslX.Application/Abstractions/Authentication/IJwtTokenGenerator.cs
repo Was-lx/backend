@@ -4,7 +4,7 @@ namespace WaslX.Application.Abstractions.Authentication;
 
 public interface IJwtTokenGenerator
 {
-    AccessToken GenerateAccessToken(string userId, string email, string fullName, IEnumerable<string> roles, int? tenantId = null);
+    AccessToken GenerateAccessToken(string userId, string email, string fullName, IEnumerable<string> roles, int? tenantId = null, int? domainUserId = null);
     RefreshTokenValue GenerateRefreshToken();
 
     // Returns the user id (sub) from a token whose signature is valid, ignoring expiry.

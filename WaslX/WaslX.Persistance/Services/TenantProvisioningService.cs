@@ -17,6 +17,7 @@ internal sealed class TenantProvisioningService(
     ApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
     IPermissionService permissionService,
+    IDomainUserDirectory domainUsers,
     IAuthService authService) : ITenantProvisioningService
 {
     public async Task<Result<AuthResponse>> CreateSelfServeAsync(SelfServeSignupInput input, CancellationToken cancellationToken = default)
@@ -67,6 +68,9 @@ internal sealed class TenantProvisioningService(
         await userManager.AddToRoleAsync(user, DefaultRoles.Admin);
         await permissionService.SeedDefaultMatrixAsync(tenant.Id, cancellationToken);
 
+        // The first Admin is the workspace owner: mark their domain user row (locked role, can't be disabled).
+        await domainUsers.EnsureOwnerAsync(tenant.Id, email, user.FullName, cancellationToken);
+
         await tx.CommitAsync(cancellationToken);
 
         // Log the new Admin straight in.
@@ -110,6 +114,10 @@ internal sealed class TenantProvisioningService(
         }
 
         await permissionService.SeedDefaultMatrixAsync(tenant.Id, cancellationToken);
+
+        // The first Admin is the workspace owner: mark their domain user row (locked role, can't be disabled).
+        await domainUsers.EnsureOwnerAsync(tenant.Id, email, input.AdminFullName.Trim(), cancellationToken);
+
         await tx.CommitAsync(cancellationToken);
 
         return Result.Success(tenant.Id);
