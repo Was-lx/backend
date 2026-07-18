@@ -51,6 +51,19 @@ public record ConversationDetailResponse(
 /// <summary>Returned after a status change: the new status plus the moves now valid from it.</summary>
 public record ConversationStatusResponse(int Id, string Status, IReadOnlyList<string> AllowedTransitions);
 
+/// <summary>
+/// AI conversation summary. <paramref name="ShortSummary"/> is always present; the structured
+/// <paramref name="FullSummary"/> is only populated once explicitly generated. <paramref name="IsStale"/>
+/// indicates newer messages have arrived since <paramref name="GeneratedAt"/> (the caller may refresh).
+/// </summary>
+public record ConversationSummaryResponse(
+    int ConversationId,
+    string ShortSummary,
+    string? FullSummary,
+    int MessageCount,
+    bool IsStale,
+    DateTime GeneratedAt);
+
 /// <summary>Cursor-paginated slice of items plus a flag indicating more are available.</summary>
 public record PagedResult<T>(IReadOnlyList<T> Items, bool HasMore);
 
