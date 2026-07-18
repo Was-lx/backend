@@ -84,6 +84,9 @@ namespace WaslX.Persistance
             services.AddScoped<IConversationService, ConversationService>();
             services.AddScoped<INoteService, NoteService>();
 
+            // AI conversation summary — cached one-line + on-demand full summary.
+            services.AddScoped<IConversationSummaryService, ConversationSummaryService>();
+
             // Bridges the Identity user (GUID) to the domain User (int) for JWT inbox scoping.
             services.AddScoped<IDomainUserDirectory, DomainUserDirectory>();
 

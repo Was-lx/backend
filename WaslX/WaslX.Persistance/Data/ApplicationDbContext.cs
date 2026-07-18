@@ -19,6 +19,7 @@ namespace WaslX.Persistance.Data
         public DbSet<Assignment> Assignments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<Conversation> Conversations { get; set; }
+        public DbSet<ConversationSummary> ConversationSummaries { get; set; }
         public DbSet<ConversationStageHistory> ConversationStageHistories { get; set; }
         public DbSet<ConversationTag> ConversationTags { get; set; }
         public DbSet<Customer> Customers { get; set; }
