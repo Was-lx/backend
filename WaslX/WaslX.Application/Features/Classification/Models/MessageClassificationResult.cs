@@ -8,4 +8,5 @@ public sealed class MessageClassificationResult
     public string Priority { get; init; } = "normal";
     public bool Escalate { get; init; }
     public string Reason { get; init; } = string.Empty;
+    public string ClassifierVersion { get; init; } = "unknown";
 }

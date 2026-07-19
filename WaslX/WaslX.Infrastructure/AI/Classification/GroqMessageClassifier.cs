@@ -1,78 +1,116 @@
-using System.Net.Http;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using WaslX.Application.Abstractions.Ai;
 using WaslX.Application.Abstractions.AI;
 using WaslX.Application.Features.Classification.Models;
 
 namespace WaslX.Infrastructure.AI.Classification;
 
-public sealed class GroqOptions
-{
-    public string BaseUrl { get; set; } = "https://api.groq.com/openai/v1";
-    public string ApiKey { get; set; } = string.Empty;
-    public string Model { get; set; } = "llama-3.3-70b-versatile";
-    public int RequestTimeoutSeconds { get; set; } = 30;
-}
-
 public sealed class GroqMessageClassifier(
-    HttpClient httpClient,
+    ILLMProvider llmProvider,
     ILogger<GroqMessageClassifier> logger,
     RuleBasedMessageClassifier fallback) : IMessageClassifier
 {
+    private const string SystemPrompt = "You classify WaslX customer-support messages. Return one compact JSON object only.";
+
     public async Task<MessageClassificationResult> ClassifyAsync(
         MessageClassificationInput input, CancellationToken cancellationToken = default)
     {
-        try
+        var request = new LlmRequest(
+            SystemPrompt,
+            [new LlmMessage("user", BuildPrompt(input))],
+            Temperature: 0,
+            MaxTokens: 300);
+
+        var generation = await llmProvider.GenerateAsync(request, cancellationToken);
+        if (generation.IsFailure)
         {
-            var prompt = BuildPrompt(input);
-            var requestBody = new { model = "llama-3.3-70b-versatile", messages = new[] { new { role = "user", content = prompt } }, temperature = 0.1 };
-
-            var response = await httpClient.PostAsync("/v1/chat/completions",
-                new StringContent(JsonSerializer.Serialize(requestBody), System.Text.Encoding.UTF8, "application/json"),
-                cancellationToken);
-
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync(cancellationToken);
-            using var doc = JsonDocument.Parse(json);
-            var content = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
-
-            return ParseResult(content ?? string.Empty);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Groq API call failed, falling back to rule-based classifier");
+            logger.LogWarning("Message classification LLM call failed: {ErrorCode}. Falling back to rules.", generation.Error.Code);
             return await fallback.ClassifyAsync(input, cancellationToken);
         }
+
+        var parsed = TryParseResult(generation.Value.Text, $"groq:{generation.Value.ModelId}");
+        if (parsed is not null)
+            return parsed;
+
+        logger.LogWarning("Message classification LLM returned invalid JSON. Falling back to rules.");
+        return await fallback.ClassifyAsync(input, cancellationToken);
     }
 
     private static string BuildPrompt(MessageClassificationInput input)
     {
-        return $@"Classify this customer message. Return JSON only.
-Message: ""{input.MessageText}""
-Recent context: {string.Join(" | ", input.RecentMessages)}
-Fields: topic (general/support/complaint/pricing/account), language (arabic/english/mixed/unknown), sentiment (positive/neutral/negative/angry), priority (low/normal/high/urgent), escalate (true/false), reason (short explanation if escalate=true, else empty)";
+        var recentContext = input.RecentMessages.Count == 0
+            ? "none"
+            : string.Join(" | ", input.RecentMessages.Take(5));
+        var memory = string.IsNullOrWhiteSpace(input.CustomerMemorySummary)
+            ? "none"
+            : input.CustomerMemorySummary;
+
+        return $$"""
+Classify this customer message for routing and escalation.
+
+Message:
+{{input.MessageText}}
+
+Recent conversation context:
+{{recentContext}}
+
+Customer memory summary:
+{{memory}}
+
+Return JSON with exactly these fields:
+- topic: one of general, support, complaint, pricing, account, technical, delivery, sales
+- language: one of arabic, english, mixed, unknown
+- sentiment: one of positive, neutral, negative, angry
+- priority: one of low, normal, high, urgent
+- escalate: boolean
+- reason: short explanation when escalate is true, otherwise empty string
+""";
     }
 
-    private static MessageClassificationResult ParseResult(string content)
+    private static MessageClassificationResult? TryParseResult(string content, string classifierVersion)
     {
         try
         {
-            using var doc = JsonDocument.Parse(content);
+            var json = ExtractJson(content);
+            using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
+
             return new MessageClassificationResult
             {
-                Topic = root.TryGetProperty("topic", out var t) ? t.GetString() ?? "general" : "general",
-                Language = root.TryGetProperty("language", out var l) ? l.GetString() ?? "unknown" : "unknown",
-                Sentiment = root.TryGetProperty("sentiment", out var s) ? s.GetString() ?? "neutral" : "neutral",
-                Priority = root.TryGetProperty("priority", out var p) ? p.GetString() ?? "normal" : "normal",
-                Escalate = root.TryGetProperty("escalate", out var e) && e.GetBoolean(),
-                Reason = root.TryGetProperty("reason", out var r) ? r.GetString() ?? string.Empty : string.Empty
+                Topic = GetString(root, "topic", "general"),
+                Language = GetString(root, "language", "unknown"),
+                Sentiment = GetString(root, "sentiment", "neutral"),
+                Priority = GetString(root, "priority", "normal"),
+                Escalate = root.TryGetProperty("escalate", out var e) && e.ValueKind is JsonValueKind.True,
+                Reason = GetString(root, "reason", string.Empty),
+                ClassifierVersion = classifierVersion
             };
         }
         catch
         {
-            return new MessageClassificationResult();
+            return null;
         }
     }
+
+    private static string ExtractJson(string content)
+    {
+        var trimmed = content.Trim();
+        if (trimmed.StartsWith("```", StringComparison.Ordinal))
+        {
+            var firstNewLine = trimmed.IndexOf('\n');
+            var lastFence = trimmed.LastIndexOf("```", StringComparison.Ordinal);
+            if (firstNewLine >= 0 && lastFence > firstNewLine)
+                trimmed = trimmed[(firstNewLine + 1)..lastFence].Trim();
+        }
+
+        var start = trimmed.IndexOf('{');
+        var end = trimmed.LastIndexOf('}');
+        return start >= 0 && end >= start ? trimmed[start..(end + 1)] : trimmed;
+    }
+
+    private static string GetString(JsonElement root, string propertyName, string fallbackValue) =>
+        root.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString() ?? fallbackValue
+            : fallbackValue;
 }

@@ -39,7 +39,11 @@ namespace WaslX.Infrastructure
             services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
             services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
             services.Configure<OpenAiOptions>(configuration.GetSection(OpenAiOptions.SectionName));
-            services.Configure<ClassificationOptions>(configuration.GetSection("Classification"));
+            services.Configure<GroqOptions>(configuration.GetSection(GroqOptions.SectionName));
+            services.Configure<HuggingFaceOptions>(configuration.GetSection(HuggingFaceOptions.SectionName));
+            services.Configure<AiModelOptions>(configuration.GetSection(AiModelOptions.SectionName));
+            services.Configure<QdrantOptions>(configuration.GetSection(QdrantOptions.SectionName));
+            services.Configure<RagOptions>(configuration.GetSection(RagOptions.SectionName));
             services.Configure<EscalationScoringOptions>(configuration.GetSection(EscalationScoringOptions.SectionName));
 
             services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -55,18 +59,8 @@ namespace WaslX.Infrastructure
 
             services.AddScoped<IMediaStorageService, CloudinaryMediaStorageService>();
 
-            services.AddHttpClient<GroqMessageClassifier>(client =>
-            {
-                var opts = configuration.GetSection("Classification:Groq").Get<AI.Classification.GroqOptions>();
-                if (opts != null)
-                {
-                    client.BaseAddress = new Uri(opts.BaseUrl);
-                    client.Timeout = TimeSpan.FromSeconds(opts.RequestTimeoutSeconds);
-                }
-            });
-
-            services.AddTransient<RuleBasedMessageClassifier>();
-            services.AddTransient<IMessageClassifier>(sp => sp.GetRequiredService<GroqMessageClassifier>());
+            services.AddScoped<RuleBasedMessageClassifier>();
+            services.AddScoped<IMessageClassifier, GroqMessageClassifier>();
             // ---- RAG / AI: provider-agnostic seams → Qdrant ----
             services.AddMemoryCache();
 

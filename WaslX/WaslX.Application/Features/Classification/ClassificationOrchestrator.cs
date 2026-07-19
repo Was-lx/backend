@@ -67,7 +67,7 @@ public class ClassificationOrchestrator(
                 Priority = result.Priority,
                 Escalate = result.Escalate,
                 Reason = result.Reason,
-                ClassifierVersion = "groq:llama-3.3-70b-versatile"
+                ClassifierVersion = result.ClassifierVersion
             };
 
             await classRepo.AddAsync(classification, cancellationToken);
@@ -75,6 +75,8 @@ public class ClassificationOrchestrator(
             int? escalationId = null;
             if (result.Escalate)
             {
+                await unitOfWork.CompleteAsync();
+
                 var escalationInput = new EscalationInput
                 {
                     TenantId = tenantId,

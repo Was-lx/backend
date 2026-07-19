@@ -75,6 +75,7 @@ public sealed class ConversationEscalationService(
 
             await WriteAuditAsync(input.TenantId, input.ConversationId, escalation.Id, input.ClassificationId,
                 input.Reason, input.Priority, input.Sentiment, cancellationToken);
+            await unitOfWork.CompleteAsync();
 
             return Result.Success(new EscalationResult
             {
