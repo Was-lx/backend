@@ -2,6 +2,7 @@ using Hangfire;
 using Serilog;
 using WaslX.Api;
 using WaslX.Application.Abstractions.Maintenance;
+using WaslX.Application.Abstractions.Rag;
 using WaslX.Api.Extensions;
 using WaslX.Api.Hubs;
 using WaslX.Application;
@@ -30,6 +31,17 @@ await app.InitializeDatabasesAsync();
 // Idempotent seed: subscription plans + a ready demo workspace/Admin, so a
 // fresh database is immediately usable (sign-up needs plans to exist first).
 await app.SeedDemoDataAsync();
+
+// RAG: idempotent Qdrant collection bootstrap. Logged, not fatal — the app still starts if the
+// vector store is unreachable at boot (e.g. Qdrant not running locally yet); RAG features simply
+// fail per-request via the Result pattern until it's back.
+using (var ragScope = app.Services.CreateScope())
+{
+    var vectorStore = ragScope.ServiceProvider.GetRequiredService<IVectorStore>();
+    var ensureResult = await vectorStore.EnsureCollectionAsync();
+    if (ensureResult.IsFailure)
+        Log.Warning("Qdrant collection bootstrap failed at startup: {Error}", ensureResult.Error.Code);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
