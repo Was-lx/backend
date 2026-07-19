@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WaslX.Persistance.Data;
 
@@ -11,9 +12,11 @@ using WaslX.Persistance.Data;
 namespace WaslX.Persistance.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260718025009_AddConversationSummary")]
+    partial class AddConversationSummary
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -999,80 +1002,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("invoices", (string)null);
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeDocument", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("document_id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ChunkCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("FileName")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<string>("FileUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Language")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("MimeType")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int?>("SourceRefId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SourceType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("SourceUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "SourceType");
-
-                    b.ToTable("knowledge_documents", (string)null);
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeVector", b =>
                 {
                     b.Property<int>("Id")
@@ -1082,40 +1011,20 @@ namespace WaslX.Persistance.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ChunkIndex")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ContentHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int>("DocumentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EmbeddingModel")
+                    b.Property<string>("Embedding")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<Guid>("QdrantPointId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SourceId")
                         .HasColumnType("int");
 
                     b.Property<string>("SourceType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -1127,26 +1036,14 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TokenCount")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("QdrantPointId")
-                        .IsUnique();
-
-                    b.HasIndex("DocumentId", "ChunkIndex")
-                        .IsUnique();
-
-                    b.HasIndex("TenantId", "DocumentId");
+                    b.HasIndex("TenantId");
 
                     b.ToTable("knowledge_vectors", (string)null);
                 });
@@ -2672,7 +2569,7 @@ namespace WaslX.Persistance.Data.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "SUPERADMIN@WASLX.COM",
                             NormalizedUserName = "SUPERADMIN@WASLX.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEO1bbLWdMPBLJ2Wy5jcEXOuvfu26HCB3j5DP+JyYPLnLrImsKh0ltwGFhu5N/pNpbA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEGL5dfFDcJBvnpT9ZUQUtfkj3cYcm5b93u5zcvvcvWAT6KKNUcNT+bwIuLrFYt9+tw==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "f6a7b8c9-d0e1-4f2a-b3c4-5d6e7f809102",
                             TwoFactorEnabled = false,
@@ -3118,29 +3015,12 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeDocument", b =>
-                {
-                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
-                        .WithMany("KnowledgeDocuments")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeVector", b =>
                 {
                     b.HasOne("WaslX.Domain.Entities.Customer", "Customer")
                         .WithMany("KnowledgeVectors")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("WaslX.Domain.Entities.KnowledgeDocument", "Document")
-                        .WithMany("Chunks")
-                        .HasForeignKey("DocumentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
                         .WithMany("KnowledgeVectors")
@@ -3149,8 +3029,6 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
-
-                    b.Navigation("Document");
 
                     b.Navigation("Tenant");
                 });
@@ -3472,11 +3350,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("UserGroups");
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeDocument", b =>
-                {
-                    b.Navigation("Chunks");
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
@@ -3541,8 +3414,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("Groups");
 
                     b.Navigation("Invoices");
-
-                    b.Navigation("KnowledgeDocuments");
 
                     b.Navigation("KnowledgeVectors");
 

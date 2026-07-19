@@ -10,7 +10,6 @@ using WaslX.Application.Abstractions.Knowledge;
 using WaslX.Application.Abstractions.Media;
 using WaslX.Application.Abstractions.Rag;
 using WaslX.Application.Abstractions.WhatsApp;
-using WaslX.Infrastructure.Ai.Providers;
 using WaslX.Infrastructure.Authentication;
 using WaslX.Infrastructure.Email;
 using WaslX.Infrastructure.Identity;
@@ -34,11 +33,6 @@ namespace WaslX.Infrastructure
             services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
             services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
             services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
-            services.Configure<GroqOptions>(configuration.GetSection(GroqOptions.SectionName));
-            services.Configure<HuggingFaceOptions>(configuration.GetSection(HuggingFaceOptions.SectionName));
-            services.Configure<AiModelOptions>(configuration.GetSection(AiModelOptions.SectionName));
-            services.Configure<QdrantOptions>(configuration.GetSection(QdrantOptions.SectionName));
-            services.Configure<RagOptions>(configuration.GetSection(RagOptions.SectionName));
 
             services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IAuthService, AuthSerive>();
@@ -47,6 +41,9 @@ namespace WaslX.Infrastructure
 
             // Meta WhatsApp Cloud API client (typed HttpClient via IHttpClientFactory).
             services.AddHttpClient<IMetaGraphApiService, MetaGraphApiService>();
+
+            // OpenAI chat-completion client (typed HttpClient) — powers conversation summaries.
+            services.AddHttpClient<IChatCompletionClient, OpenAiChatCompletionClient>();
 
             services.AddScoped<IMediaStorageService, CloudinaryMediaStorageService>();
 

@@ -70,6 +70,11 @@ public static class AppErrors
     public static readonly Error ShiftOutsideCompanyHours = new("Shift.OutsideCompanyHours", "A shift day must fall on a company working day and stay within its hours", 400);
     public static readonly Error InvalidWorkingHours = new("WorkingHours.Invalid", "Invalid working hours; check the day and that the end time is after the start time", 400);
 
+    // AI / OpenAI (Sprint 4)
+    public static readonly Error OpenAiNotConfigured = new("AI.NotConfigured", "The AI service is not configured (missing API key)", 503);
+    public static readonly Error SummaryGenerationFailed = new("AI.SummaryGenerationFailed", "Could not generate the conversation summary", 502);
+    public static readonly Error ConversationHasNoMessages = new("AI.NoMessages", "There are no messages to summarize yet", 400);
+
     // Media
     public static readonly Error MediaUploadFailed = new("Media.UploadFailed", "Could not upload the file", 502);
     public static readonly Error MediaFileRequired = new("Media.FileRequired", "A file is required", 400);
