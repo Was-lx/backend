@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WaslX.Api.Contracts;
@@ -13,7 +12,6 @@ namespace WaslX.Api.Controllers;
 [Route("api/escalation")]
 [Authorize]
 public class EscalationController(
-    ISender sender,
     IEscalationModeService modeService,
     IEscalationAssignmentService assignmentService) : ControllerBase
 {

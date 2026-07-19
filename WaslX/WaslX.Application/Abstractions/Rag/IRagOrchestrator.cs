@@ -1,4 +1,4 @@
-using WaslX.Application.Abstractions.Ai;
+using WaslX.Application.Abstractions.AI;
 using WaslX.Domain.Results;
 
 namespace WaslX.Application.Abstractions.Rag;

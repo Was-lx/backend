@@ -3,11 +3,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using WaslX.Application.Abstractions.Ai;
+using WaslX.Application.Abstractions.AI;
 using WaslX.Domain.Results;
 using WaslX.Infrastructure.Settings;
 
-namespace WaslX.Infrastructure.Ai.Providers;
+namespace WaslX.Infrastructure.AI.Providers;
 
 /// <summary>
 /// Embedding provider backed by Hugging Face's Inference Providers feature-extraction pipeline —

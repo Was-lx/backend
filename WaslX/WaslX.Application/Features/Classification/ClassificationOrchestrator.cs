@@ -39,11 +39,11 @@ public class ClassificationOrchestrator(
             }
 
             // Verify tenant by conversation if needed, or trust tenantId param.
-            
+
             // Get recent messages for context (last 5 messages in this conversation)
             var recentMessagesSpec = new RecentMessagesSpecification(conversationId, messageId);
             var recentMessages = await msgRepo.GetAllWithSpecAsync(recentMessagesSpec, false);
-            
+
             var input = new MessageClassificationInput
             {
                 TenantId = tenantId,
@@ -120,7 +120,10 @@ public class ClassificationOrchestrator(
 
             if (classification.Escalate && escalationId.HasValue)
             {
-                logger.LogInformation("Conversation {ConversationId}: Escalation {EscalationId} created successfully.", conversationId, escalationId.Value);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Conversation {ConversationId}: Escalation {EscalationId} created successfully.", conversationId, escalationId.Value);
+                }
             }
         }
         catch (Exception ex)
@@ -131,7 +134,7 @@ public class ClassificationOrchestrator(
 
     private class RecentMessagesSpecification : Specification<Message, int>
     {
-        public RecentMessagesSpecification(int conversationId, int currentMessageId) 
+        public RecentMessagesSpecification(int conversationId, int currentMessageId)
             : base(m => m.ConversationId == conversationId && m.Id < currentMessageId && m.MessageType == MessageType.Text)
         {
             AddOrderByDesc(m => m.Id);

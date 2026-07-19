@@ -1,6 +1,6 @@
 using WaslX.Domain.Results;
 
-namespace WaslX.Application.Abstractions.Ai;
+namespace WaslX.Application.Abstractions.AI;
 
 /// <summary>
 /// Provider-agnostic embedding generation. Batches inputs in a single call for cost/latency.

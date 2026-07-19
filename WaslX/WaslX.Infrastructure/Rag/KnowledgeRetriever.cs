@@ -3,7 +3,7 @@ using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using WaslX.Application.Abstractions.Ai;
+using WaslX.Application.Abstractions.AI;
 using WaslX.Application.Abstractions.Rag;
 using WaslX.Domain.Results;
 using WaslX.Infrastructure.Settings;

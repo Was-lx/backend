@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Qdrant.Client;
 using WaslX.Application.Abstractions.AI;
-using WaslX.Application.Abstractions.Ai;
 using WaslX.Application.Abstractions.Authentication;
 using WaslX.Application.Abstractions.Identity;
 using WaslX.Application.Features.Escalation.Models;
@@ -13,7 +12,8 @@ using WaslX.Application.Abstractions.Media;
 using WaslX.Application.Abstractions.Rag;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Infrastructure.AI;
-using WaslX.Infrastructure.Ai.Providers;
+using WaslX.Infrastructure.AI.Classification;
+using WaslX.Infrastructure.AI.Providers;
 using WaslX.Infrastructure.Authentication;
 using WaslX.Infrastructure.Email;
 using WaslX.Infrastructure.Identity;
@@ -24,10 +24,6 @@ using WaslX.Infrastructure.Media;
 using WaslX.Infrastructure.Rag;
 using WaslX.Infrastructure.Settings;
 using WaslX.Infrastructure.WhatsApp;
-using WaslX.Infrastructure.AI.Classification;
-using WaslX.Application.Abstractions.AI;
-using WaslX.Infrastructure.AI;
-using WaslX.Infrastructure.Ai.Providers;
 
 namespace WaslX.Infrastructure
 {

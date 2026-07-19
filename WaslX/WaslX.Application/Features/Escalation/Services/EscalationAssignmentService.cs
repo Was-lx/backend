@@ -261,12 +261,13 @@ namespace WaslX.Application.Features.Escalation.Services
         private class TenantEscalationSettingsSpec(int tenantId)
             : Domain.Specifications.Specification<TenantEscalationSettings, int>(s => s.TenantId == tenantId);
 
+#pragma warning disable CS8603 // Possible null reference return in EF navigation include expression trees.
         private class EscalationWithIncludesSpec : Domain.Specifications.Specification<Domain.Entities.Escalation, int>
         {
             public EscalationWithIncludesSpec(int escalationId) : base(e => e.Id == escalationId)
             {
                 AddInclude(e => e.Conversation);
-                AddInclude(e => e.SuggestedAssignee);
+                AddInclude(e => e.SuggestedAssignee!);
             }
         }
 
@@ -276,8 +277,9 @@ namespace WaslX.Application.Features.Escalation.Services
                 : base(e => e.ConversationId == conversationId)
             {
                 AddInclude(e => e.Conversation);
-                AddInclude(e => e.SuggestedAssignee);
+                AddInclude(e => e.SuggestedAssignee!);
             }
         }
+#pragma warning restore CS8603
     }
 }

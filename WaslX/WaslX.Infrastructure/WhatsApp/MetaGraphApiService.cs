@@ -274,7 +274,7 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
                 {
                     foreach (var b in btns.EnumerateArray())
                         buttons.Add(new MetaTemplateButton(
-                            GetString(b, "type"), GetString(b, "text"), GetString(b, "url"), GetString(b, "phone_number")));
+                            GetString(b, "type") ?? string.Empty, GetString(b, "text"), GetString(b, "url"), GetString(b, "phone_number")));
                 }
 
                 components.Add(new MetaTemplateComponent(
