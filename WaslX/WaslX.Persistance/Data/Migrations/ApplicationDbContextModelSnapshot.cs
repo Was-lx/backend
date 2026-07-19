@@ -2908,11 +2908,7 @@ namespace WaslX.Persistance.Data.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "SUPERADMIN@WASLX.COM",
                             NormalizedUserName = "SUPERADMIN@WASLX.COM",
-<<<<<<< HEAD
-                            PasswordHash = "AQAAAAIAAYagAAAAEOC01q3jTAsCFs1e8zyIlqQloM4Xa7/r2OzLsgpQKPIdeYJjqe/CAQbM0tCkyPN0Zw==",
-=======
                             PasswordHash = "AQAAAAIAAYagAAAAEO1bbLWdMPBLJ2Wy5jcEXOuvfu26HCB3j5DP+JyYPLnLrImsKh0ltwGFhu5N/pNpbA==",
->>>>>>> origin/main
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "f6a7b8c9-d0e1-4f2a-b3c4-5d6e7f809102",
                             TwoFactorEnabled = false,
