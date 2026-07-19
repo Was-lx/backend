@@ -39,6 +39,7 @@ namespace WaslX.Domain.Entities
         public ICollection<FAQ> FAQs { get; set; } = new HashSet<FAQ>();
         public ICollection<Customer> Customers { get; set; } = new HashSet<Customer>();
         public ICollection<KnowledgeVector> KnowledgeVectors { get; set; } = new HashSet<KnowledgeVector>();
+        public ICollection<KnowledgeDocument> KnowledgeDocuments { get; set; } = new HashSet<KnowledgeDocument>();
         public ICollection<WhatsAppAccount> WhatsAppAccounts { get; set; } = new HashSet<WhatsAppAccount>();
         public ICollection<Group> Groups { get; set; } = new HashSet<Group>();
         public ICollection<Tag> Tags { get; set; } = new HashSet<Tag>();

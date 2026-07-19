@@ -28,6 +28,7 @@ namespace WaslX.Persistance.Data
         public DbSet<InternalNote> InternalNotes { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<KnowledgeVector> KnowledgeVectors { get; set; }
+        public DbSet<KnowledgeDocument> KnowledgeDocuments { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<MessageClassification> MessageClassifications { get; set; }
         public DbSet<Escalation> Escalations { get; set; }

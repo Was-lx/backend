@@ -12,6 +12,7 @@ using WaslX.Application.Abstractions.Distribution;
 using WaslX.Application.Abstractions.Groups;
 using WaslX.Application.Abstractions.Identity;
 using WaslX.Application.Abstractions.Inbox;
+using WaslX.Application.Abstractions.Knowledge;
 using WaslX.Application.Abstractions.Maintenance;
 using WaslX.Application.Abstractions.Permissions;
 using WaslX.Application.Abstractions.Presence;
@@ -25,6 +26,8 @@ using WaslX.Infrastructure.Identity;
 using WaslX.Persistance.Data;
 using WaslX.Persistance.Repos;
 using WaslX.Persistance.Services;
+using WaslX.Persistance.Services.Knowledge;
+using WaslX.Persistance.Services.Knowledge.Sources;
 using WaslX.Persistance.UnitOfWorks;
 
 namespace WaslX.Persistance
@@ -115,6 +118,11 @@ namespace WaslX.Persistance
 
             // Recurring maintenance jobs (auto-resolve stale conversations + reassign offline agents).
             services.AddScoped<IMaintenanceJobs, MaintenanceJobs>();
+
+            // RAG knowledge ingestion orchestrator (needs direct DbContext access).
+            services.AddScoped<IKnowledgeIngestionPipeline, KnowledgeIngestionPipeline>();
+            services.AddScoped<IKnowledgeService, KnowledgeService>();
+            services.AddScoped<IKnowledgeSource, FaqKnowledgeSource>();
 
             return services;
         }

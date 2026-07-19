@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using WaslX.Domain.Entities;
 
@@ -20,23 +19,16 @@ namespace WaslX.Persistance.Configurations
                    .HasConversion<string>()
                    .HasMaxLength(50);
 
+            builder.Property(x => x.Status)
+                   .HasConversion<string>()
+                   .HasMaxLength(50);
+
             builder.Property(x => x.TextContent)
                    .IsRequired();
 
-            builder.Property(x => x.Embedding)
-                .HasConversion(
-                    v => string.Join(',', v),
-                    v => string.IsNullOrWhiteSpace(v)
-                        ? Array.Empty<float>()
-                        : v.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                           .Select(float.Parse)
-                           .ToArray())
-                .Metadata.SetValueComparer(
-                    new ValueComparer<float[]>(
-                        (a, b) => a!.SequenceEqual(b!),
-                        v => v.Aggregate(0, (hash, value) => HashCode.Combine(hash, value)),
-                        v => v.ToArray()
-                    ));
+            builder.Property(x => x.ContentHash).HasMaxLength(64).IsRequired();
+            builder.Property(x => x.EmbeddingModel).HasMaxLength(150).IsRequired();
+
             builder.HasOne(x => x.Tenant)
                    .WithMany(x => x.KnowledgeVectors)
                    .HasForeignKey(x => x.TenantId)
@@ -46,6 +38,15 @@ namespace WaslX.Persistance.Configurations
                    .WithMany(x => x.KnowledgeVectors)
                    .HasForeignKey(x => x.CustomerId)
                    .OnDelete(DeleteBehavior.SetNull);
+
+            builder.HasOne(x => x.Document)
+                   .WithMany(x => x.Chunks)
+                   .HasForeignKey(x => x.DocumentId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasIndex(x => new { x.TenantId, x.DocumentId });
+            builder.HasIndex(x => new { x.DocumentId, x.ChunkIndex }).IsUnique();
+            builder.HasIndex(x => x.QdrantPointId).IsUnique();
         }
     }
 }

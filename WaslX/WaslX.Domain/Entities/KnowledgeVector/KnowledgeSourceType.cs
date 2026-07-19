@@ -6,6 +6,7 @@ namespace WaslX.Domain.SharedEnums
         Message,
         FAQ,
         Note,
-        Document
+        Document,
+        Website
     }
 }
