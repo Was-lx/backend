@@ -11,6 +11,11 @@ public class UnitOfWork(ApplicationDbContext dbContext) : IUnitOfWork
 
     public async Task<int> CompleteAsync() => await dbContext.SaveChangesAsync();
 
+    public void ResetContext()
+    {
+        dbContext.ChangeTracker.Clear();
+    }
+
     public ValueTask DisposeAsync() => dbContext.DisposeAsync();
 
     public IGenericRepository<TEntity, TKey> GetRepository<TEntity, TKey>()

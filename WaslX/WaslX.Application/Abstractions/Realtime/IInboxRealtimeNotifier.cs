@@ -1,3 +1,6 @@
+using WaslX.Application.Features.Escalation.Models;
+using WaslX.Application.Features.Escalation.Screening;
+
 namespace WaslX.Application.Abstractions.Realtime;
 
 /// <summary>
@@ -20,7 +23,39 @@ public interface IInboxRealtimeNotifier
 
     /// <summary>An internal team note was added to a conversation (never sent to the customer).</summary>
     Task NoteAddedAsync(int tenantId, InboxNotePayload note, CancellationToken cancellationToken = default);
+
+    /// <summary>A message's classification result was saved.</summary>
+    Task MessageClassificationUpdatedAsync(int tenantId, MessageClassificationPayload payload, CancellationToken cancellationToken = default);
+
+    /// <summary>US-4.4: Auto-escalation triggered for urgent/angry conversation.</summary>
+    Task ConversationEscalatedAsync(int tenantId, ConversationEscalatedPayload payload, CancellationToken cancellationToken = default);
+
+    /// <summary>An escalation scoring recommendation was made.</summary>
+    Task EscalationRecommendationUpdatedAsync(int tenantId, EscalationScoringResult result, CancellationToken cancellationToken = default);
+
+    // ── US-4.5 Screening events ──
+
+    /// <summary>recommend mode: Manager/Admin confirmed the suggestion.</summary>
+    Task EscalationAssignmentConfirmedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default);
+
+    /// <summary>autoAssign mode: system assigned automatically.</summary>
+    Task EscalationAutoAssignedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default);
+
+    /// <summary>Manager/Admin overrode the suggestion.</summary>
+    Task EscalationOverrideAppliedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default);
+
+    /// <summary>Any ownership change.</summary>
+    Task ConversationOwnershipTransferredAsync(int tenantId, OwnershipTransferredPayload payload, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Realtime payload for ownership transfer events.</summary>
+public record OwnershipTransferredPayload(
+    int ConversationId,
+    int? PreviousOwnerId,
+    int NewOwnerId,
+    string TransitionType,
+    DateTime OccurredAtUtc,
+    DateTime? OwnershipTransferredAtUtc);
 
 /// <summary>Realtime projection of a message (mirrors the inbox MessageResponse DTO; no tokens).</summary>
 public record InboxMessagePayload(
@@ -50,3 +85,28 @@ public record InboxNotePayload(
     string Content,
     string AuthorName,
     DateTime CreatedAt);
+
+/// <summary>US-4.4: Auto-escalation triggered payload.</summary>
+public record ConversationEscalatedPayload(
+    int EscalationId,
+    int ConversationId,
+    int TenantId,
+    string Reason,
+    string Priority,
+    string Sentiment,
+    string Status,
+    DateTime OccurredAtUtc);
+
+/// <summary>Realtime projection of a message classification result.</summary>
+public record MessageClassificationPayload(
+    int ConversationId,
+    int MessageId,
+    MessageClassificationDto Classification);
+
+public record MessageClassificationDto(
+    string Topic,
+    string Language,
+    string Sentiment,
+    string Priority,
+    bool Escalate,
+    string Reason);

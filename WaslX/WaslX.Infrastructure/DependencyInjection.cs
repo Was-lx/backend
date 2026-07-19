@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WaslX.Application.Abstractions.AI;
 using WaslX.Application.Abstractions.Authentication;
 using WaslX.Application.Abstractions.Identity;
+using WaslX.Application.Features.Escalation.Models;
 using WaslX.Application.Abstractions.Media;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Infrastructure.AI;
@@ -13,6 +14,7 @@ using WaslX.Infrastructure.Identity;
 using WaslX.Infrastructure.Media;
 using WaslX.Infrastructure.Settings;
 using WaslX.Infrastructure.WhatsApp;
+using WaslX.Infrastructure.AI.Classification;
 
 namespace WaslX.Infrastructure
 {
@@ -27,6 +29,8 @@ namespace WaslX.Infrastructure
             services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
             services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
             services.Configure<OpenAiOptions>(configuration.GetSection(OpenAiOptions.SectionName));
+            services.Configure<ClassificationOptions>(configuration.GetSection("Classification"));
+            services.Configure<EscalationScoringOptions>(configuration.GetSection(EscalationScoringOptions.SectionName));
 
             services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IAuthService, AuthSerive>();
@@ -40,6 +44,19 @@ namespace WaslX.Infrastructure
             services.AddHttpClient<IChatCompletionClient, OpenAiChatCompletionClient>();
 
             services.AddScoped<IMediaStorageService, CloudinaryMediaStorageService>();
+
+            services.AddHttpClient<GroqMessageClassifier>(client =>
+            {
+                var opts = configuration.GetSection("Classification:Groq").Get<GroqOptions>();
+                if (opts != null)
+                {
+                    client.BaseAddress = new Uri(opts.BaseUrl);
+                    client.Timeout = TimeSpan.FromSeconds(opts.RequestTimeoutSeconds);
+                }
+            });
+
+            services.AddTransient<RuleBasedMessageClassifier>();
+            services.AddTransient<IMessageClassifier>(sp => sp.GetRequiredService<GroqMessageClassifier>());
 
             return services;
         }

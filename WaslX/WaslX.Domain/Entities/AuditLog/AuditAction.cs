@@ -9,6 +9,7 @@ namespace WaslX.Domain.SharedEnums
         StatusChanged,
         Login,
         Logout,
-        Impersonated
+        Impersonated,
+        EscalationTriggered
     }
 }

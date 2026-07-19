@@ -29,6 +29,8 @@ namespace WaslX.Persistance.Data
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<KnowledgeVector> KnowledgeVectors { get; set; }
         public DbSet<Message> Messages { get; set; }
+        public DbSet<MessageClassification> MessageClassifications { get; set; }
+        public DbSet<Escalation> Escalations { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<PlatformUser> PlatformUsers { get; set; }
         public new DbSet<Role> Roles { get; set; }
@@ -49,6 +51,9 @@ namespace WaslX.Persistance.Data
         public DbSet<UserGroup> UserGroups { get; set; }
         public DbSet<WhatsAppAccount> WhatsAppAccounts { get; set; }
         public DbSet<WhatsAppWebhookLog> WhatsAppWebhookLogs { get; set; }
+
+        // ── Sprint 4: screening ──
+        public DbSet<TenantEscalationSettings> TenantEscalationSettings { get; set; }
 
         // ── Sprint 3: channels, distribution & working hours ──
         public DbSet<Channel> Channels { get; set; }
