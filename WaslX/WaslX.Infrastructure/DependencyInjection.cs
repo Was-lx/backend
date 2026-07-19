@@ -1,18 +1,19 @@
-﻿using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Qdrant.Client;
 using WaslX.Application.Abstractions.AI;
-using WaslX.Application.Abstractions.Ai;
 using WaslX.Application.Abstractions.Authentication;
 using WaslX.Application.Abstractions.Identity;
+using WaslX.Application.Features.Escalation.Models;
 using WaslX.Application.Abstractions.Knowledge;
 using WaslX.Application.Abstractions.Media;
 using WaslX.Application.Abstractions.Rag;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Infrastructure.AI;
-using WaslX.Infrastructure.Ai.Providers;
+using WaslX.Infrastructure.AI.Classification;
+using WaslX.Infrastructure.AI.Providers;
 using WaslX.Infrastructure.Authentication;
 using WaslX.Infrastructure.Email;
 using WaslX.Infrastructure.Identity;
@@ -42,6 +43,7 @@ namespace WaslX.Infrastructure
             services.Configure<AiModelOptions>(configuration.GetSection(AiModelOptions.SectionName));
             services.Configure<QdrantOptions>(configuration.GetSection(QdrantOptions.SectionName));
             services.Configure<RagOptions>(configuration.GetSection(RagOptions.SectionName));
+            services.Configure<EscalationScoringOptions>(configuration.GetSection(EscalationScoringOptions.SectionName));
 
             services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IAuthService, AuthSerive>();
@@ -56,6 +58,8 @@ namespace WaslX.Infrastructure
 
             services.AddScoped<IMediaStorageService, CloudinaryMediaStorageService>();
 
+            services.AddScoped<RuleBasedMessageClassifier>();
+            services.AddScoped<IMessageClassifier, GroqMessageClassifier>();
             // ---- RAG / AI: provider-agnostic seams → Qdrant ----
             services.AddMemoryCache();
 

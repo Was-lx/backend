@@ -4,11 +4,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using WaslX.Application.Abstractions.Ai;
+using WaslX.Application.Abstractions.AI;
 using WaslX.Domain.Results;
 using WaslX.Infrastructure.Settings;
 
-namespace WaslX.Infrastructure.Ai.Providers;
+namespace WaslX.Infrastructure.AI.Providers;
 
 /// <summary>
 /// Direct Groq chat-completions client (OpenAI-compatible) used as the active <see cref="ILLMProvider"/>.

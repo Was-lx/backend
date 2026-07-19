@@ -13,6 +13,9 @@ namespace WaslX.Persistance.Configurations
             builder.Property(x => x.Id).HasColumnName("performance_id");
             builder.Property(x => x.AvgResponseTime).HasPrecision(18, 2);
             builder.Property(x => x.ResolutionRate).HasPrecision(18, 2);
+            builder.Property(x => x.ResolvedChats).HasDefaultValue(0);
+            builder.Property(x => x.RowVersion).IsRowVersion();
+            builder.HasIndex(x => x.UserId).IsUnique();
             builder.HasOne(x => x.User).WithMany(x => x.AgentPerformances).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         }
     }

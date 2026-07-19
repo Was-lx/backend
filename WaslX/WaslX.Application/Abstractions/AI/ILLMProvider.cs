@@ -1,6 +1,6 @@
 using WaslX.Domain.Results;
 
-namespace WaslX.Application.Abstractions.Ai;
+namespace WaslX.Application.Abstractions.AI;
 
 /// <summary>
 /// Provider-agnostic text generation. The application depends only on this seam; the concrete

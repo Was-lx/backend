@@ -1,4 +1,4 @@
-namespace WaslX.Application.Abstractions.Ai;
+namespace WaslX.Application.Abstractions.AI;
 
 /// <summary>A single turn in an LLM conversation. Role is provider-agnostic ("user"/"assistant").</summary>
 public record LlmMessage(string Role, string Content);

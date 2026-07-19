@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using WaslX.Application.Abstractions.Ai;
+using WaslX.Application.Abstractions.AI;
 using WaslX.Application.Abstractions.Rag;
 using WaslX.Domain.Results;
 

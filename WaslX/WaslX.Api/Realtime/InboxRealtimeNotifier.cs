@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.SignalR;
 using WaslX.Api.Hubs;
 using WaslX.Application.Abstractions.Realtime;
+using WaslX.Application.Features.Escalation.Models;
+using WaslX.Application.Features.Escalation.Screening;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace WaslX.Api.Realtime;
 
@@ -23,4 +27,25 @@ internal sealed class InboxRealtimeNotifier(IHubContext<InboxHub> hub) : IInboxR
 
     public Task NoteAddedAsync(int tenantId, InboxNotePayload note, CancellationToken cancellationToken = default) =>
         hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("NoteAdded", note, cancellationToken);
+
+    public Task MessageClassificationUpdatedAsync(int tenantId, MessageClassificationPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("MessageClassificationUpdated", payload, cancellationToken);
+
+    public Task EscalationRecommendationUpdatedAsync(int tenantId, EscalationScoringResult result, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationRecommendationUpdated", result, cancellationToken);
+
+    public Task ConversationEscalatedAsync(int tenantId, ConversationEscalatedPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationEscalated", payload, cancellationToken);
+
+    public Task EscalationAssignmentConfirmedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationAssignmentConfirmed", result, cancellationToken);
+
+    public Task EscalationAutoAssignedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationAutoAssigned", result, cancellationToken);
+
+    public Task EscalationOverrideAppliedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationOverrideApplied", result, cancellationToken);
+
+    public Task ConversationOwnershipTransferredAsync(int tenantId, OwnershipTransferredPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationOwnershipTransferred", payload, cancellationToken);
 }

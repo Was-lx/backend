@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using WaslX.Application.Abstractions.Distribution;
@@ -19,6 +20,7 @@ internal sealed class WhatsAppWebhookProcessor(
     IInboxRealtimeNotifier notifier,
     IConversationWindowService windowService,
     IDistributionService distribution,
+    Hangfire.IBackgroundJobClient backgroundJobs,
     ILogger<WhatsAppWebhookProcessor> logger) : IWhatsAppWebhookProcessor
 {
     private static readonly HashSet<MessageType> MediaTypes =
@@ -194,6 +196,13 @@ internal sealed class WhatsAppWebhookProcessor(
         if (reopened)
             await notifier.ConversationChangedAsync(account.TenantId, new ConversationChangedPayload(
                 conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);
+
+        // Queue classification job (fire-and-forget)
+        if (inbound.MessageType == MessageType.Text)
+        {
+            backgroundJobs.Enqueue<WaslX.Application.Features.Classification.IClassificationOrchestrator>(
+                o => o.ProcessClassificationAsync(account.TenantId, conversation.Id, inbound.Id, CancellationToken.None));
+        }
 
         // Auto-distribution (Sprint 3, Phase B): route a brand-new, still-unassigned conversation to an
         // eligible agent per the number's DistributionMode. Strictly additive and fully guarded — a
