@@ -46,7 +46,18 @@ public interface IInboxRealtimeNotifier
 
     /// <summary>Any ownership change.</summary>
     Task ConversationOwnershipTransferredAsync(int tenantId, OwnershipTransferredPayload payload, CancellationToken cancellationToken = default);
+
+    // ── US-4.6 AI Agent events ──
+    
+    /// <summary>Conversation was taken over from AI by human.</summary>
+    Task ConversationTakenOverAsync(int tenantId, ConversationTakenOverPayload payload, CancellationToken cancellationToken = default);
+
+    /// <summary>The AI mode for this conversation was explicitly changed.</summary>
+    Task ConversationAiModeChangedAsync(int tenantId, ConversationAiModeChangedPayload payload, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Realtime payload for AI takeover events.</summary>
+public record ConversationTakenOverPayload(int ConversationId, DateTime OccurredAtUtc);
 
 /// <summary>Realtime payload for ownership transfer events.</summary>
 public record OwnershipTransferredPayload(
@@ -76,7 +87,14 @@ public record ConversationChangedPayload(
     int ConversationId,
     string Status,
     int? AssignedUserId,
-    DateTime? LastMessageAt);
+    DateTime? LastMessageAt,
+    bool HandledByAi = false,
+    string AiMode = "Active");
+
+/// <summary>Realtime projection of an AI mode change.</summary>
+public record ConversationAiModeChangedPayload(
+    int ConversationId,
+    string AiMode);
 
 /// <summary>Realtime projection of an internal note.</summary>
 public record InboxNotePayload(

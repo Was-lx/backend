@@ -44,6 +44,7 @@ public static class AppErrors
     public static readonly Error ConversationInvalidTransition = new("Conversation.InvalidTransition", "That status change is not allowed from the current status", 400);
     public static readonly Error UserContextNotResolved = new("User.ContextNotResolved", "Could not resolve the current user for this workspace", 400);
     public static readonly Error OwnerLocked = new("User.OwnerLocked", "The workspace owner's role cannot be changed and the owner cannot be disabled.", 403);
+    public static readonly Error InvalidStatus = new("Conversation.InvalidStatus", "Invalid status or mode provided", 400);
 
     // Channels (Sprint 3)
     public static readonly Error ChannelNotFound = new("Channel.NotFound", "Channel not found", 404);
@@ -74,6 +75,7 @@ public static class AppErrors
     public static readonly Error OpenAiNotConfigured = new("AI.NotConfigured", "The AI service is not configured (missing API key)", 503);
     public static readonly Error SummaryGenerationFailed = new("AI.SummaryGenerationFailed", "Could not generate the conversation summary", 502);
     public static readonly Error ConversationHasNoMessages = new("AI.NoMessages", "There are no messages to summarize yet", 400);
+    public static readonly Error AiNumberDisabled = new("AI.NumberDisabled", "AI is disabled for this WhatsApp number by the administrator", 403);
 
     // Media
     public static readonly Error MediaUploadFailed = new("Media.UploadFailed", "Could not upload the file", 502);

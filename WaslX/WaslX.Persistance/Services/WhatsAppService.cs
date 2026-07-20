@@ -140,24 +140,27 @@ internal sealed class WhatsAppService(
         return Result.Success();
     }
 
-    public Task<Result<SendMessageResult>> SendTextAsync(int? tenantId, string toPhone, string text, int? senderUserId = null, CancellationToken cancellationToken = default) =>
+    public Task<Result<SendMessageResult>> SendTextAsync(int? tenantId, string toPhone, string text, int? senderUserId = null, SenderType senderType = SenderType.Agent, CancellationToken cancellationToken = default) =>
         SendAsync(tenantId, toPhone, MessageType.Text, text,
             (account) => graphApi.SendTextMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, text, cancellationToken),
             senderUserId,
+            senderType,
             cancellationToken);
 
-    public Task<Result<SendMessageResult>> SendTemplateAsync(int? tenantId, string toPhone, string templateName, string languageCode, TemplateSendParameters? parameters = null, int? senderUserId = null, CancellationToken cancellationToken = default) =>
+    public Task<Result<SendMessageResult>> SendTemplateAsync(int? tenantId, string toPhone, string templateName, string languageCode, TemplateSendParameters? parameters = null, int? senderUserId = null, SenderType senderType = SenderType.Agent, CancellationToken cancellationToken = default) =>
         SendAsync(tenantId, toPhone, MessageType.Template, templateName,
             (account) => graphApi.SendTemplateMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, templateName, languageCode, parameters, cancellationToken),
             senderUserId,
+            senderType,
             cancellationToken);
 
     public Task<Result<SendMessageResult>> SendMediaAsync(
         int? tenantId, string toPhone, string mediaType, string mediaUrl, string? caption, string? fileName,
-        string mimeType, int? senderUserId = null, CancellationToken cancellationToken = default) =>
+        string mimeType, int? senderUserId = null, SenderType senderType = SenderType.Agent, CancellationToken cancellationToken = default) =>
         SendAsync(tenantId, toPhone, MapMediaMessageType(mediaType), caption ?? string.Empty,
             (account) => graphApi.SendMediaMessageAsync(account.PhoneNumberId, account.AccessToken, toPhone, mediaType, mediaUrl, caption, fileName, cancellationToken),
             senderUserId,
+            senderType,
             cancellationToken,
             mediaUrl,
             mimeType,
@@ -179,6 +182,7 @@ internal sealed class WhatsAppService(
         string content,
         Func<WhatsAppAccount, Task<Result<string>>> send,
         int? senderUserId,
+        SenderType senderType,
         CancellationToken cancellationToken,
         string? mediaUrl = null,
         string? mediaMimeType = null,
@@ -221,7 +225,7 @@ internal sealed class WhatsAppService(
         {
             ConversationId = conversation.Id,
             SenderUserId = senderUserId,
-            SenderType = SenderType.Agent,
+            SenderType = senderType,
             MessageType = messageType,
             Content = content,
             MediaUrl = mediaUrl,

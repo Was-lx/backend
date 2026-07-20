@@ -75,7 +75,9 @@ internal sealed class ConversationService(
                 db.Messages.Count(m =>
                     m.ConversationId == c.Id &&
                     m.SenderType == SenderType.Customer &&
-                    (c.LastReadAt == null || m.Timestamp > c.LastReadAt))))
+                    (c.LastReadAt == null || m.Timestamp > c.LastReadAt)),
+                c.HandledByAi,
+                c.AiMode))
             .ToListAsync(cancellationToken);
 
         var hasMore = rows.Count > pageSize;
@@ -150,7 +152,9 @@ internal sealed class ConversationService(
                 c.GroupId,
                 GroupName = c.Group != null ? c.Group.Name : null,
                 c.CurrentStageId,
-                CurrentStageName = c.CurrentStage != null ? c.CurrentStage.Name : null
+                CurrentStageName = c.CurrentStage != null ? c.CurrentStage.Name : null,
+                c.HandledByAi,
+                c.AiMode
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -172,7 +176,8 @@ internal sealed class ConversationService(
             allowed, detail.AssignedUserId, detail.AssignedUserName, detail.Tags,
             detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt,
             windowState.WindowExpiresAt, windowState.IsOpen, windowState.WindowType.ToString(), (long)windowState.RemainingTime.TotalSeconds, detail.MessageCount,
-            detail.GroupId, detail.GroupName, detail.CurrentStageId, detail.CurrentStageName));
+            detail.GroupId, detail.GroupName, detail.CurrentStageId, detail.CurrentStageName,
+            detail.HandledByAi, detail.AiMode));
     }
 
     public async Task<Result<ConversationStatusResponse>> ChangeStatusAsync(
@@ -227,7 +232,7 @@ internal sealed class ConversationService(
                 .Select(u => (int?)u.Id)
                 .FirstOrDefaultAsync(cancellationToken);
 
-        return await whatsApp.SendTextAsync(tenantId, phone, text, senderUserId, cancellationToken);
+        return await whatsApp.SendTextAsync(tenantId, phone, text, senderUserId, WaslX.Domain.SharedEnums.SenderType.Agent, cancellationToken);
     }
 
     public async Task<Result> MarkReadAsync(
@@ -296,7 +301,70 @@ internal sealed class ConversationService(
                 .FirstOrDefaultAsync(cancellationToken);
 
         return await whatsApp.SendMediaAsync(
-            tenantId, phone, mediaType, uploadResult.Value.Url, caption, fileName, contentType, senderUserId, cancellationToken);
+            tenantId, phone, mediaType, uploadResult.Value.Url, caption, fileName, contentType, senderUserId, WaslX.Domain.SharedEnums.SenderType.Agent, cancellationToken);
+    }
+
+    public async Task<Result> ChangeAiModeAsync(
+        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string modeStr, CancellationToken cancellationToken = default)
+    {
+        if (tenantId is null)
+            return Result.Failure(AppErrors.NoTenantContext);
+
+        if (!Enum.TryParse<WaslX.Domain.SharedEnums.AiConversationMode>(modeStr, true, out var parsedMode) || parsedMode == 0)
+            return Result.Failure(AppErrors.InvalidStatus);
+
+        var conversation = await db.Conversations
+            .Include(c => c.WhatsAppAccount)
+            .Include(c => c.Customer)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.TenantId == tenantId && !c.IsDeleted, cancellationToken);
+
+        if (conversation is null)
+            return Result.Failure(AppErrors.ConversationNotFound);
+
+        if (!isPrivileged && conversation.AssignedUserId != currentUserId)
+            return Result.Failure(AppErrors.ConversationAccessDenied);
+
+        // Check if Admin disabled AI for this number.
+        // Priority: per-number record (if it exists) → tenant-level setting as fallback.
+        var numberSettings = await db.AiAgentNumberSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.WhatsAppAccountId == conversation.WhatsAppAccountId, cancellationToken);
+
+        bool aiEnabled;
+        if (numberSettings is not null)
+        {
+            aiEnabled = numberSettings.Enabled;
+        }
+        else
+        {
+            // No per-number override: fall back to the tenant-level toggle.
+            var tenantSettings = await db.TenantAiAgentSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken);
+            aiEnabled = tenantSettings?.Enabled ?? false;
+        }
+
+        if (!aiEnabled)
+            return Result.Failure(AppErrors.AiNumberDisabled);
+
+        // Update the conversation AI Mode
+        conversation.AiMode = parsedMode;
+        
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Broadcast to clients
+        await notifier.ConversationAiModeChangedAsync(tenantId.Value, new ConversationAiModeChangedPayload(
+            conversation.Id, conversation.AiMode.ToString()), cancellationToken);
+
+        await notifier.ConversationChangedAsync(tenantId.Value, new ConversationChangedPayload(
+            conversation.Id,
+            conversation.Status.ToString(),
+            conversation.AssignedUserId,
+            conversation.LastMessageAt,
+            conversation.HandledByAi,
+            conversation.AiMode.ToString()), cancellationToken);
+
+        return Result.Success();
     }
 
     /// <summary>

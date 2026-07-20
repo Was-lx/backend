@@ -124,6 +124,10 @@ namespace WaslX.Persistance
             services.AddScoped<IKnowledgeService, KnowledgeService>();
             services.AddScoped<IKnowledgeSource, FaqKnowledgeSource>();
 
+            // AI Agent
+            services.AddScoped<WaslX.Application.Abstractions.AI.IAiAgentSettingsService, WaslX.Persistance.Services.AiAgent.AiAgentSettingsService>();
+            services.AddScoped<WaslX.Application.Abstractions.AI.IAiAgentReplyService, WaslX.Persistance.Services.AiAgent.AiAgentReplyService>();
+
             return services;
         }
 
