@@ -47,10 +47,19 @@ public class ClassificationOrchestrator(
             var recentMessagesSpec = new RecentMessagesSpecification(conversationId, messageId);
             var recentMessages = await msgRepo.GetAllWithSpecAsync(recentMessagesSpec, false);
 
-            var knowledgeResult = await knowledgeRetriever.RetrieveAsync(tenantId, message.Content, topK: 3, cancellationToken: cancellationToken);
-            var knowledgeContext = knowledgeResult.IsSuccess && knowledgeResult.Value.Chunks.Count > 0
-                ? string.Join("\n", knowledgeResult.Value.Chunks.Select(c => $"[{c.Title ?? c.SourceType}] {c.Content}"))
-                : null;
+            string? knowledgeContext = null;
+            try
+            {
+                var knowledgeResult = await knowledgeRetriever.RetrieveAsync(tenantId, message.Content, topK: 3, cancellationToken: cancellationToken);
+                if (knowledgeResult.IsSuccess && knowledgeResult.Value.Chunks.Count > 0)
+                {
+                    knowledgeContext = string.Join("\n", knowledgeResult.Value.Chunks.Select(c => $"[{c.Title ?? c.SourceType}] {c.Content}"));
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Knowledge retrieval failed for conversation {ConversationId}, proceeding without context.", conversationId);
+            }
 
             var input = new MessageClassificationInput
             {
