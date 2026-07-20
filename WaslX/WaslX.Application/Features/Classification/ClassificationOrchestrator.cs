@@ -1,7 +1,9 @@
 using System.Linq;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using WaslX.Application.Abstractions.AI;
 using WaslX.Application.Abstractions.AutoEscalation;
+using WaslX.Application.Abstractions.Rag;
 using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Features.Classification.Models;
 using WaslX.Application.Features.Escalation.Models;
@@ -22,6 +24,7 @@ public class ClassificationOrchestrator(
     IMessageClassifier classifier,
     IInboxRealtimeNotifier realtimeNotifier,
     IConversationEscalationService escalationService,
+    IKnowledgeRetriever knowledgeRetriever,
     ILogger<ClassificationOrchestrator> logger) : IClassificationOrchestrator
 {
     public async Task ProcessClassificationAsync(int tenantId, int conversationId, int messageId, CancellationToken cancellationToken = default)
@@ -44,6 +47,11 @@ public class ClassificationOrchestrator(
             var recentMessagesSpec = new RecentMessagesSpecification(conversationId, messageId);
             var recentMessages = await msgRepo.GetAllWithSpecAsync(recentMessagesSpec, false);
 
+            var knowledgeResult = await knowledgeRetriever.RetrieveAsync(tenantId, message.Content, topK: 3, cancellationToken: cancellationToken);
+            var knowledgeContext = knowledgeResult.IsSuccess && knowledgeResult.Value.Chunks.Count > 0
+                ? string.Join("\n", knowledgeResult.Value.Chunks.Select(c => $"[{c.Title ?? c.SourceType}] {c.Content}"))
+                : null;
+
             var input = new MessageClassificationInput
             {
                 TenantId = tenantId,
@@ -51,7 +59,7 @@ public class ClassificationOrchestrator(
                 MessageId = messageId,
                 MessageText = message.Content,
                 RecentMessages = recentMessages.Select(m => m.Content).ToList(),
-                CustomerMemorySummary = null
+                CustomerMemorySummary = knowledgeContext
             };
 
             var result = await classifier.ClassifyAsync(input, cancellationToken);
@@ -93,6 +101,23 @@ public class ClassificationOrchestrator(
                 if (escalationResult.IsSuccess)
                 {
                     escalationId = escalationResult.Value.EscalationId;
+
+                    if (escalationId.HasValue && escalationResult.Value.Created)
+                    {
+                        var scoringInput = new EscalationScoringInput
+                        {
+                            TenantId = tenantId,
+                            ConversationId = conversationId,
+                            EscalationId = escalationId.Value,
+                            Topic = result.Topic,
+                            Sentiment = result.Sentiment,
+                            Priority = result.Priority,
+                            EscalationReason = result.Reason
+                        };
+
+                        BackgroundJob.Enqueue<IEscalationTargetScoringService>(
+                            service => service.ScoreAsync(scoringInput, CancellationToken.None));
+                    }
                 }
                 else
                 {
