@@ -48,4 +48,10 @@ internal sealed class InboxRealtimeNotifier(IHubContext<InboxHub> hub) : IInboxR
 
     public Task ConversationOwnershipTransferredAsync(int tenantId, OwnershipTransferredPayload payload, CancellationToken cancellationToken = default) =>
         hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationOwnershipTransferred", payload, cancellationToken);
+
+    public Task ConversationTakenOverAsync(int tenantId, ConversationTakenOverPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationTakenOver", payload, cancellationToken);
+
+    public Task ConversationAiModeChangedAsync(int tenantId, ConversationAiModeChangedPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationAiModeChanged", payload, cancellationToken);
 }

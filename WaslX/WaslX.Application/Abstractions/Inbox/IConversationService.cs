@@ -51,4 +51,8 @@ public interface IConversationService
         int? tenantId, int currentUserId, bool isPrivileged, int conversationId,
         byte[] fileContent, string fileName, string contentType, string? caption,
         string? currentUserEmail = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Changes the AI mode (Active, Human, Paused) for the conversation.</summary>
+    Task<Result> ChangeAiModeAsync(
+        int? tenantId, int currentUserId, bool isPrivileged, int conversationId, string mode, CancellationToken cancellationToken = default);
 }

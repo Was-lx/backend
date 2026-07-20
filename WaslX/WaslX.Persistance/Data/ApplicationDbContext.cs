@@ -53,8 +53,10 @@ namespace WaslX.Persistance.Data
         public DbSet<WhatsAppAccount> WhatsAppAccounts { get; set; }
         public DbSet<WhatsAppWebhookLog> WhatsAppWebhookLogs { get; set; }
 
-        // ── Sprint 4: screening ──
+        // ── Sprint 4: screening & AI ──
         public DbSet<TenantEscalationSettings> TenantEscalationSettings { get; set; }
+        public DbSet<TenantAiAgentSettings> TenantAiAgentSettings { get; set; }
+        public DbSet<AiAgentNumberSettings> AiAgentNumberSettings { get; set; }
 
         // ── Sprint 3: channels, distribution & working hours ──
         public DbSet<Channel> Channels { get; set; }

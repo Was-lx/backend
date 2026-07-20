@@ -9,6 +9,7 @@ using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Domain.Entities;
 using WaslX.Domain.SharedEnums;
 using WaslX.Persistance.Data;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WaslX.Persistance.Services;
 
@@ -21,6 +22,7 @@ internal sealed class WhatsAppWebhookProcessor(
     IConversationWindowService windowService,
     IDistributionService distribution,
     Hangfire.IBackgroundJobClient backgroundJobs,
+    Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory,
     ILogger<WhatsAppWebhookProcessor> logger) : IWhatsAppWebhookProcessor
 {
     private static readonly HashSet<MessageType> MediaTypes =
@@ -197,11 +199,73 @@ internal sealed class WhatsAppWebhookProcessor(
             await notifier.ConversationChangedAsync(account.TenantId, new ConversationChangedPayload(
                 conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);
 
-        // Queue classification job (fire-and-forget)
+        // US-4.8: Queue classification and AI agent parallel execution (fire-and-forget inside the background job)
         if (inbound.MessageType == MessageType.Text)
         {
-            backgroundJobs.Enqueue<WaslX.Application.Features.Classification.IClassificationOrchestrator>(
-                o => o.ProcessClassificationAsync(account.TenantId, conversation.Id, inbound.Id, CancellationToken.None));
+            var tenantId = account.TenantId;
+            var convId = conversation.Id;
+            var msgId = inbound.Id;
+            var wabaId = conversation.WhatsAppAccountId;
+            var aiMode = conversation.AiMode;
+
+            _ = Task.Run(async () =>
+            {
+                var t1 = Task.Run(async () =>
+                {
+                    using var classScope = serviceScopeFactory.CreateScope();
+                    var classifier = classScope.ServiceProvider.GetRequiredService<WaslX.Application.Features.Classification.IClassificationOrchestrator>();
+                    var classLogger = classScope.ServiceProvider.GetRequiredService<ILogger<WhatsAppWebhookProcessor>>();
+                    try
+                    {
+                        await classifier.ProcessClassificationAsync(tenantId, convId, msgId, CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        classLogger.LogError(ex, "Classification failed for message {MsgId}", msgId);
+                    }
+                });
+
+                var t2 = Task.Run(async () =>
+                {
+                    using var aiScope = serviceScopeFactory.CreateScope();
+                    var bgDb = aiScope.ServiceProvider.GetRequiredService<WaslX.Persistance.Data.ApplicationDbContext>();
+                    var aiAgent = aiScope.ServiceProvider.GetRequiredService<WaslX.Application.Abstractions.AI.IAiAgentReplyService>();
+                    var aiLogger = aiScope.ServiceProvider.GetRequiredService<ILogger<WhatsAppWebhookProcessor>>();
+
+                    try
+                    {
+                        var numberSettings = await bgDb.AiAgentNumberSettings
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(n => n.WhatsAppAccountId == wabaId);
+
+                        bool numberAiEnabled;
+                        if (numberSettings is not null)
+                        {
+                            numberAiEnabled = numberSettings.Enabled;
+                        }
+                        else
+                        {
+                            var tenantAiSettings = await bgDb.TenantAiAgentSettings
+                                .AsNoTracking()
+                                .FirstOrDefaultAsync(s => s.TenantId == tenantId);
+                            numberAiEnabled = tenantAiSettings?.Enabled ?? false;
+                        }
+
+                        aiLogger.LogInformation("WhatsAppWebhookProcessor: Routing AI for Conv {ConvId}. numberAiEnabled: {AiEnabled}, AiMode: {AiMode}", convId, numberAiEnabled, aiMode);
+
+                        if (numberAiEnabled && aiMode == WaslX.Domain.SharedEnums.AiConversationMode.Active)
+                        {
+                            await aiAgent.ReplyAsync(tenantId, convId, msgId, CancellationToken.None);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        aiLogger.LogError(ex, "AI Agent routing/reply failed for message {MsgId}", msgId);
+                    }
+                });
+
+                await Task.WhenAll(t1, t2);
+            });
         }
 
         // Auto-distribution (Sprint 3, Phase B): route a brand-new, still-unassigned conversation to an

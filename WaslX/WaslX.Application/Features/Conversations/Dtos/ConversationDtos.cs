@@ -9,7 +9,9 @@ public record ConversationListItemResponse(
     string? LastMessagePreview,
     DateTime? LastMessageAt,
     int? AssignedUserId,
-    int UnreadCount);
+    int UnreadCount,
+    bool HandledByAi = false,
+    WaslX.Domain.SharedEnums.AiConversationMode AiMode = WaslX.Domain.SharedEnums.AiConversationMode.Active);
 
 /// <summary>A single message in a conversation thread (safe projection — no tokens).</summary>
 public record MessageResponse(
@@ -46,7 +48,12 @@ public record ConversationDetailResponse(
     int? GroupId,
     string? GroupName,
     int? CurrentStageId,
-    string? CurrentStageName);
+    string? CurrentStageName,
+    bool HandledByAi = false,
+    WaslX.Domain.SharedEnums.AiConversationMode AiMode = WaslX.Domain.SharedEnums.AiConversationMode.Active);
+
+/// <summary>Request to change the conversation's AI mode.</summary>
+public record ChangeAiModeRequest(WaslX.Domain.SharedEnums.AiConversationMode Mode);
 
 /// <summary>Returned after a status change: the new status plus the moves now valid from it.</summary>
 public record ConversationStatusResponse(int Id, string Status, IReadOnlyList<string> AllowedTransitions);

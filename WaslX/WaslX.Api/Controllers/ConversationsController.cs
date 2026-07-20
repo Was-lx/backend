@@ -19,6 +19,7 @@ using WaslX.Application.Features.ConversationStages.Dtos;
 using WaslX.Application.Features.Notes.AddNote;
 using WaslX.Application.Features.Notes.GetNotes;
 using WaslX.Application.Features.WhatsApp.Dtos;
+using WaslX.Application.Features.Conversations.ChangeConversationAiMode;
 using WaslX.Domain.Results;
 
 namespace WaslX.Api.Controllers;
@@ -63,8 +64,13 @@ public class ConversationsController(ISender sender) : ControllerBase
         return (await sender.Send(query, cancellationToken)).ToActionResult();
     }
 
-    /// <summary>Sends a text reply within a conversation.</summary>
-    [HttpPost("{id:int}/messages")]
+    /// <summary>Updates the AI mode for this conversation (Active, Human, Paused).</summary>
+    [HttpPut("{id:int}/ai-mode")]
+    public async Task<IActionResult> ChangeAiMode(int id, [FromBody] ChangeAiModeRequest request, CancellationToken cancellationToken = default) =>
+        (await sender.Send(new ChangeConversationAiModeCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Mode.ToString()), cancellationToken)).ToActionResult();
+
+    /// <summary>Send a standard text reply. Applies 24h-window validation.</summary>
+    [HttpPost("{id:int}/messages/text")]
     public async Task<IActionResult> SendMessage(int id, [FromBody] SendConversationMessageRequest request, CancellationToken cancellationToken)
     {
         var command = new SendConversationMessageCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Text, User.GetEmail());
