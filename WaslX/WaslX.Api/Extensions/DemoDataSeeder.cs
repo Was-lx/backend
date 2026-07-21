@@ -11,7 +11,7 @@ namespace WaslX.Api.Extensions;
 
 /// <summary>
 /// Idempotent first-run seed so a brand-new database is usable out of the box:
-/// the 3 subscription plans (needed before anyone can sign up) and one ready-to-use
+/// the 4 subscription plans (needed before anyone can sign up) and one ready-to-use
 /// demo workspace + Admin login. Every step is guarded by an existence check, so it
 /// runs safely on every startup and no-ops once the data is present.
 /// </summary>
@@ -44,27 +44,35 @@ public static class DemoDataSeeder
         db.SubscriptionPlans.AddRange(
             new SubscriptionPlan
             {
-                Code = "starter", Name = "Starter", Tagline = "For small teams getting organized on WhatsApp.",
-                Price = 29m, PriceYearly = 24m, BillingCycle = BillingCycle.Monthly,
-                MaxAgents = 3, MaxNumbers = 1, MsgQuota = 5000, AiQuota = 500, TrialDays = 7,
+                Code = "starter", Name = "Starter", Tagline = "For small teams handling WhatsApp support manually.",
+                Price = 30m, PriceYearly = 25m, BillingCycle = BillingCycle.Monthly,
+                MaxAgents = 2, MaxNumbers = 1, MsgQuota = 1000, AiQuota = 1000, TrialDays = 7,
                 IsActive = true, IsPublic = true, IsCustom = false, SortOrder = 1,
-                Features = new() { "Up to 3 agents", "1 WhatsApp number", "Shared team inbox", "Manual & round-robin routing", "Tags & filters", "Basic reporting" }
+                Features = new() { "Up to 1,000 conversations / month", "Up to 2 agents", "AI reply suggestions (1–3 per message)", "Manual conversation assignment", "Shared database", "Email support" }
             },
             new SubscriptionPlan
             {
-                Code = "growth", Name = "Growth", Tagline = "The full AI pipeline for scaling teams.",
-                Price = 99m, PriceYearly = 82m, BillingCycle = BillingCycle.Monthly,
-                MaxAgents = 15, MaxNumbers = 2, MsgQuota = 20000, AiQuota = 3000, TrialDays = 7,
+                Code = "growth", Name = "Growth", Tagline = "The full AI pipeline for scaling support teams.",
+                Price = 138m, PriceYearly = 115m, BillingCycle = BillingCycle.Monthly,
+                MaxAgents = 5, MaxNumbers = 2, MsgQuota = 3000, AiQuota = 3000, TrialDays = 7,
                 IsActive = true, IsPublic = true, IsCustom = false, SortOrder = 2,
-                Features = new() { "Up to 15 agents", "2 WhatsApp numbers", "AI routing + RAG memory", "AI reply suggestions", "Campaigns & broadcasts", "Advanced analytics", "Groups & stage handoff" }
+                Features = new() { "Up to 3,000 conversations / month", "Up to 5 agents", "Full AI pipeline: RAG memory, routing & classification", "Conversation summaries on handoff", "Auto-escalation for urgent / VIP / angry conversations", "Off-hours acknowledgment & FAQ auto-resolve", "Email + live chat support" }
             },
             new SubscriptionPlan
             {
-                Code = "enterprise", Name = "Enterprise", Tagline = "Advanced control, scale and support.",
-                Price = 299m, PriceYearly = 249m, BillingCycle = BillingCycle.Monthly,
-                MaxAgents = 9999, MaxNumbers = 99, MsgQuota = 1000000, AiQuota = 500000, TrialDays = 7,
+                Code = "business", Name = "Business", Tagline = "Everything in Growth, tuned for larger teams.",
+                Price = 340m, PriceYearly = 282m, BillingCycle = BillingCycle.Monthly,
+                MaxAgents = 15, MaxNumbers = 5, MsgQuota = 8000, AiQuota = 8000, TrialDays = 7,
                 IsActive = true, IsPublic = true, IsCustom = false, SortOrder = 3,
-                Features = new() { "Unlimited agents", "Multiple WhatsApp numbers", "Custom AI limits", "SSO & advanced RBAC", "Priority support & SLA", "Dedicated onboarding" }
+                Features = new() { "Up to 8,000 conversations / month", "Up to 15 agents", "Everything in Growth", "Agent scoring & smart selection", "Priority support" }
+            },
+            new SubscriptionPlan
+            {
+                Code = "enterprise", Name = "Enterprise", Tagline = "Custom scale, isolation and support.",
+                Price = 0m, PriceYearly = null, BillingCycle = BillingCycle.Monthly,
+                MaxAgents = 9999, MaxNumbers = 99, MsgQuota = 1000000, AiQuota = 1000000, TrialDays = 7,
+                IsActive = true, IsPublic = true, IsCustom = true, SortOrder = 4,
+                Features = new() { "Unlimited conversations & agents", "Dedicated database per tenant", "Dedicated account manager", "Custom integrations & SLA" }
             });
 
         await db.SaveChangesAsync();
