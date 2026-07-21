@@ -15,7 +15,7 @@ namespace WaslX.Persistance.Services;
 /// </summary>
 internal sealed class ConversationSummaryService(
     ApplicationDbContext db,
-    IChatCompletionClient llm) : IConversationSummaryService
+    ILLMProvider llm) : IConversationSummaryService
 {
     // Cap the transcript we send to the model so long threads stay within a sane token budget.
     private const int MaxMessages = 60;
@@ -66,11 +66,11 @@ internal sealed class ConversationSummaryService(
         var messageCount = await db.Messages.CountAsync(m => m.ConversationId == conversationId, cancellationToken);
 
         var (system, user) = full ? FullPrompt(transcript) : ShortPrompt(transcript);
-        var completion = await llm.CompleteAsync(system, user, cancellationToken);
+        var completion = await llm.GenerateAsync(new LlmRequest(system, [new LlmMessage("user", user)]), cancellationToken);
         if (completion.IsFailure)
             return Result.Failure<ConversationSummaryResponse>(completion.Error);
 
-        var text = completion.Value;
+        var text = completion.Value.Text;
         var now = DateTime.UtcNow;
 
         var summary = existing ?? new ConversationSummary

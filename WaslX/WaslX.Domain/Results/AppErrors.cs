@@ -88,8 +88,7 @@ public static class AppErrors
     public static readonly Error CampaignInvalidStatusTransition = new("Campaign.InvalidStatusTransition", "That action is not allowed from the campaign's current status", 400);
     public static readonly Error CampaignNotEditable = new("Campaign.NotEditable", "Only a Draft campaign can be edited", 400);
 
-    // AI / OpenAI (Sprint 4)
-    public static readonly Error OpenAiNotConfigured = new("AI.NotConfigured", "The AI service is not configured (missing API key)", 503);
+    // AI (Sprint 4)
     public static readonly Error SummaryGenerationFailed = new("AI.SummaryGenerationFailed", "Could not generate the conversation summary", 502);
     public static readonly Error ConversationHasNoMessages = new("AI.NoMessages", "There are no messages to summarize yet", 400);
     public static readonly Error AiNumberDisabled = new("AI.NumberDisabled", "AI is disabled for this WhatsApp number by the administrator", 403);

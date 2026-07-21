@@ -37,7 +37,6 @@ namespace WaslX.Infrastructure
             services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
             services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
             services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
-            services.Configure<OpenAiOptions>(configuration.GetSection(OpenAiOptions.SectionName));
             services.Configure<GroqOptions>(configuration.GetSection(GroqOptions.SectionName));
             services.Configure<HuggingFaceOptions>(configuration.GetSection(HuggingFaceOptions.SectionName));
             services.Configure<AiModelOptions>(configuration.GetSection(AiModelOptions.SectionName));
@@ -52,9 +51,6 @@ namespace WaslX.Infrastructure
 
             // Meta WhatsApp Cloud API client (typed HttpClient via IHttpClientFactory).
             services.AddHttpClient<IMetaGraphApiService, MetaGraphApiService>();
-
-            // OpenAI chat-completion client (typed HttpClient) — powers conversation summaries.
-            services.AddHttpClient<IChatCompletionClient, OpenAiChatCompletionClient>();
 
             services.AddScoped<IMediaStorageService, CloudinaryMediaStorageService>();
 

@@ -195,17 +195,6 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("ResolvedChats")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -214,8 +203,7 @@ namespace WaslX.Persistance.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("agent_performances", (string)null);
                 });
@@ -791,9 +779,6 @@ namespace WaslX.Persistance.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AiMode")
-                        .HasColumnType("int");
-
                     b.Property<int?>("AssignedUserId")
                         .HasColumnType("int");
 
@@ -806,23 +791,10 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("EscalatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("EscalationReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<int?>("GroupId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("HandledByAi")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsEscalated")
                         .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastCustomerMessageAt")
@@ -918,57 +890,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("conversation_stage_histories", (string)null);
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.ConversationSummary", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("conversation_summary_id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ConversationId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FullSummary")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("GeneratedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("GeneratedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MessageCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ShortSummary")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UpToMessageId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConversationId")
-                        .IsUnique();
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("conversation_summaries", (string)null);
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.ConversationTag", b =>
                 {
                     b.Property<int>("ConversationId")
@@ -1017,108 +938,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("customers", (string)null);
-                });
-
-            modelBuilder.Entity("WaslX.Domain.Entities.Escalation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("AssignedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("AssignedToId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("AssignedUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ConfirmedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ConfirmedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ConversationId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("CreatedBySystem")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("EscalationReason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int?>("MessageClassificationId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("MessageId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ModeAtDecision")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("NotifiedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OverrideReason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Priority")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Sentiment")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("SuggestedAssigneeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SuggestedReason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedToId");
-
-                    b.HasIndex("AssignedUserId");
-
-                    b.HasIndex("ConfirmedByUserId");
-
-                    b.HasIndex("ConversationId");
-
-                    b.HasIndex("MessageClassificationId");
-
-                    b.HasIndex("MessageId");
-
-                    b.HasIndex("SuggestedAssigneeId");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("Escalations");
                 });
 
             modelBuilder.Entity("WaslX.Domain.Entities.FAQ", b =>
@@ -1383,80 +1202,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("invoices", (string)null);
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeDocument", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("document_id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ChunkCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("FileName")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<string>("FileUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Language")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("MimeType")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int?>("SourceRefId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SourceType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("SourceUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "SourceType");
-
-                    b.ToTable("knowledge_documents", (string)null);
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeVector", b =>
                 {
                     b.Property<int>("Id")
@@ -1466,40 +1211,20 @@ namespace WaslX.Persistance.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ChunkIndex")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ContentHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int>("DocumentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EmbeddingModel")
+                    b.Property<string>("Embedding")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<Guid>("QdrantPointId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SourceId")
                         .HasColumnType("int");
 
                     b.Property<string>("SourceType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -1511,26 +1236,14 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TokenCount")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("QdrantPointId")
-                        .IsUnique();
-
-                    b.HasIndex("DocumentId", "ChunkIndex")
-                        .IsUnique();
-
-                    b.HasIndex("TenantId", "DocumentId");
+                    b.HasIndex("TenantId");
 
                     b.ToTable("knowledge_vectors", (string)null);
                 });
@@ -2871,93 +2584,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.ToTable("tenants", (string)null);
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.TenantAiAgentSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("Enabled")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal>("HandoffThreshold")
-                        .HasColumnType("decimal(3,2)");
-
-                    b.Property<string>("PersonaName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ToneInstructions")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedByUserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId")
-                        .IsUnique();
-
-                    b.HasIndex("UpdatedByUserId");
-
-                    b.ToTable("TenantAiAgentSettings");
-                });
-
-            modelBuilder.Entity("WaslX.Domain.Entities.TenantEscalationSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Mode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedByUserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId")
-                        .IsUnique();
-
-                    b.HasIndex("UpdatedByUserId");
-
-                    b.ToTable("TenantEscalationSettings");
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.TenantRolePermission", b =>
                 {
                     b.Property<int>("TenantId")
@@ -3708,25 +3334,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("Stage");
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.ConversationSummary", b =>
-                {
-                    b.HasOne("WaslX.Domain.Entities.Conversation", "Conversation")
-                        .WithMany()
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Conversation");
-
-                    b.Navigation("Tenant");
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.ConversationTag", b =>
                 {
                     b.HasOne("WaslX.Domain.Entities.Conversation", "Conversation")
@@ -3753,67 +3360,6 @@ namespace WaslX.Persistance.Data.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("WaslX.Domain.Entities.Escalation", b =>
-                {
-                    b.HasOne("WaslX.Domain.Entities.User", "AssignedTo")
-                        .WithMany()
-                        .HasForeignKey("AssignedToId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("WaslX.Domain.Entities.User", "AssignedUser")
-                        .WithMany()
-                        .HasForeignKey("AssignedUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("WaslX.Domain.Entities.User", "ConfirmedByUser")
-                        .WithMany()
-                        .HasForeignKey("ConfirmedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("WaslX.Domain.Entities.Conversation", "Conversation")
-                        .WithMany()
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WaslX.Domain.Entities.MessageClassification", "MessageClassification")
-                        .WithMany()
-                        .HasForeignKey("MessageClassificationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("WaslX.Domain.Entities.Message", "Message")
-                        .WithMany()
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("WaslX.Domain.Entities.User", "SuggestedAssignee")
-                        .WithMany()
-                        .HasForeignKey("SuggestedAssigneeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AssignedTo");
-
-                    b.Navigation("AssignedUser");
-
-                    b.Navigation("ConfirmedByUser");
-
-                    b.Navigation("Conversation");
-
-                    b.Navigation("Message");
-
-                    b.Navigation("MessageClassification");
-
-                    b.Navigation("SuggestedAssignee");
 
                     b.Navigation("Tenant");
                 });
@@ -3870,29 +3416,12 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeDocument", b =>
-                {
-                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
-                        .WithMany("KnowledgeDocuments")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeVector", b =>
                 {
                     b.HasOne("WaslX.Domain.Entities.Customer", "Customer")
                         .WithMany("KnowledgeVectors")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("WaslX.Domain.Entities.KnowledgeDocument", "Document")
-                        .WithMany("Chunks")
-                        .HasForeignKey("DocumentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
                         .WithMany("KnowledgeVectors")
@@ -3901,8 +3430,6 @@ namespace WaslX.Persistance.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
-
-                    b.Navigation("Document");
 
                     b.Navigation("Tenant");
                 });
@@ -4084,42 +3611,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("PlatformUser");
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.TenantAiAgentSettings", b =>
-                {
-                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WaslX.Domain.Entities.User", "UpdatedByUser")
-                        .WithMany()
-                        .HasForeignKey("UpdatedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Tenant");
-
-                    b.Navigation("UpdatedByUser");
-                });
-
-            modelBuilder.Entity("WaslX.Domain.Entities.TenantEscalationSettings", b =>
-                {
-                    b.HasOne("WaslX.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WaslX.Domain.Entities.User", "UpdatedByUser")
-                        .WithMany()
-                        .HasForeignKey("UpdatedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Tenant");
-
-                    b.Navigation("UpdatedByUser");
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.TenantRolePermission", b =>
                 {
                     b.HasOne("WaslX.Domain.Entities.Permission", "Permission")
@@ -4279,11 +3770,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("UserGroups");
                 });
 
-            modelBuilder.Entity("WaslX.Domain.Entities.KnowledgeDocument", b =>
-                {
-                    b.Navigation("Chunks");
-                });
-
             modelBuilder.Entity("WaslX.Domain.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
@@ -4350,8 +3836,6 @@ namespace WaslX.Persistance.Data.Migrations
                     b.Navigation("Groups");
 
                     b.Navigation("Invoices");
-
-                    b.Navigation("KnowledgeDocuments");
 
                     b.Navigation("KnowledgeVectors");
 
