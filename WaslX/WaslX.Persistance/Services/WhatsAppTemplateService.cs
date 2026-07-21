@@ -24,8 +24,10 @@ internal sealed partial class WhatsAppTemplateService(ApplicationDbContext db, I
 
         // Merge live Meta data with the locally-stored review metadata (reason, submitted category,
         // allow_category_change, reviewed_at) by Meta template id.
+        // Soft-deleted reviews (DeletedAt != null) are excluded: a DELETED template is no longer
+        // usable and should not surface in the template list or picker.
         var reviews = await db.TemplateReviews
-            .Where(r => r.TenantId == tid)
+            .Where(r => r.TenantId == tid && r.DeletedAt == null)
             .ToDictionaryAsync(r => r.MetaTemplateId, cancellationToken);
 
         var templates = listResult.Value.Select(t => Map(t, reviews.GetValueOrDefault(t.Id))).ToList();

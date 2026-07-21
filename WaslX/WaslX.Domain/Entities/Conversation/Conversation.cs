@@ -21,6 +21,15 @@ namespace WaslX.Domain.Entities
         public ConversationWindowType WindowType { get; set; } = ConversationWindowType.None;
         public DateTime? LastReadAt { get; set; }
         public bool IsDeleted { get; set; }
+        
+        // US-4.6 AI Agent
+        public bool HandledByAi { get; set; }
+        public AiConversationMode AiMode { get; set; } = AiConversationMode.Active;
+
+        // US-4.4 Auto-escalation flags
+        public bool IsEscalated { get; set; }
+        public DateTime? EscalatedAtUtc { get; set; }
+        public string? EscalationReason { get; set; }
 
         public Tenant Tenant { get; set; } = null!;
         public WhatsAppAccount WhatsAppAccount { get; set; } = null!;

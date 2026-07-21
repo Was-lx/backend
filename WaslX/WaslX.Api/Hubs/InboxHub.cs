@@ -39,6 +39,10 @@ public sealed class InboxHub(IPresenceService presence, ILogger<InboxHub> logger
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        var tenantId = Context.User?.GetTenantId();
+        if (tenantId is { } tid)
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, TenantGroup(tid));
+
         // Presence is a best-effort side-effect: never let it abort the disconnect handling.
         try
         {

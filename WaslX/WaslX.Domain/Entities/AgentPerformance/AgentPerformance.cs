@@ -12,7 +12,9 @@ namespace WaslX.Domain.Entities
         public decimal AvgResponseTime { get; set; }
         public decimal ResolutionRate { get; set; }
         public int ActiveChats { get; set; }
+        public int ResolvedChats { get; set; }
         public DateTime LastUpdated { get; set; }
+        public byte[] RowVersion { get; set; } = [];
 
         public User User { get; set; } = null!;
     }

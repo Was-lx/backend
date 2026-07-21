@@ -15,6 +15,7 @@ using WaslX.Application.Abstractions.Distribution;
 using WaslX.Application.Abstractions.Groups;
 using WaslX.Application.Abstractions.Identity;
 using WaslX.Application.Abstractions.Inbox;
+using WaslX.Application.Abstractions.Knowledge;
 using WaslX.Application.Abstractions.Maintenance;
 using WaslX.Application.Abstractions.Notifications;
 using WaslX.Application.Abstractions.Permissions;
@@ -31,6 +32,8 @@ using WaslX.Infrastructure.Identity;
 using WaslX.Persistance.Data;
 using WaslX.Persistance.Repos;
 using WaslX.Persistance.Services;
+using WaslX.Persistance.Services.Knowledge;
+using WaslX.Persistance.Services.Knowledge.Sources;
 using WaslX.Persistance.UnitOfWorks;
 
 namespace WaslX.Persistance
@@ -89,6 +92,9 @@ namespace WaslX.Persistance
             // Shared inbox (conversation list / history / reply / notes).
             services.AddScoped<IConversationService, ConversationService>();
             services.AddScoped<INoteService, NoteService>();
+
+            // AI conversation summary — cached one-line + on-demand full summary.
+            services.AddScoped<IConversationSummaryService, ConversationSummaryService>();
 
             // Bridges the Identity user (GUID) to the domain User (int) for JWT inbox scoping.
             services.AddScoped<IDomainUserDirectory, DomainUserDirectory>();
@@ -151,6 +157,15 @@ namespace WaslX.Persistance
 
             // Recurring maintenance jobs (auto-resolve stale conversations + reassign offline agents).
             services.AddScoped<IMaintenanceJobs, MaintenanceJobs>();
+
+            // RAG knowledge ingestion orchestrator (needs direct DbContext access).
+            services.AddScoped<IKnowledgeIngestionPipeline, KnowledgeIngestionPipeline>();
+            services.AddScoped<IKnowledgeService, KnowledgeService>();
+            services.AddScoped<IKnowledgeSource, FaqKnowledgeSource>();
+
+            // AI Agent
+            services.AddScoped<WaslX.Application.Abstractions.AI.IAiAgentSettingsService, WaslX.Persistance.Services.AiAgent.AiAgentSettingsService>();
+            services.AddScoped<WaslX.Application.Abstractions.AI.IAiAgentReplyService, WaslX.Persistance.Services.AiAgent.AiAgentReplyService>();
 
             return services;
         }

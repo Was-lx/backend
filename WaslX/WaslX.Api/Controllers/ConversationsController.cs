@@ -7,8 +7,10 @@ using WaslX.Application.Features.Conversations.ChangeConversationStatus;
 using WaslX.Application.Features.Conversations.DeleteConversation;
 using WaslX.Application.Features.Conversations.Dtos;
 using WaslX.Application.Features.Conversations.GetConversationDetail;
+using WaslX.Application.Features.Conversations.GenerateFullSummary;
 using WaslX.Application.Features.Conversations.GetConversationMessages;
 using WaslX.Application.Features.Conversations.GetConversations;
+using WaslX.Application.Features.Conversations.GetConversationSummary;
 using WaslX.Application.Features.Conversations.MarkConversationRead;
 using WaslX.Application.Features.Conversations.SendConversationMedia;
 using WaslX.Application.Features.Conversations.SendConversationMessage;
@@ -17,6 +19,7 @@ using WaslX.Application.Features.ConversationStages.Dtos;
 using WaslX.Application.Features.Notes.AddNote;
 using WaslX.Application.Features.Notes.GetNotes;
 using WaslX.Application.Features.WhatsApp.Dtos;
+using WaslX.Application.Features.Conversations.ChangeConversationAiMode;
 using WaslX.Domain.Results;
 
 namespace WaslX.Api.Controllers;
@@ -61,8 +64,13 @@ public class ConversationsController(ISender sender) : ControllerBase
         return (await sender.Send(query, cancellationToken)).ToActionResult();
     }
 
-    /// <summary>Sends a text reply within a conversation.</summary>
-    [HttpPost("{id:int}/messages")]
+    /// <summary>Updates the AI mode for this conversation (Active, Human, Paused).</summary>
+    [HttpPut("{id:int}/ai-mode")]
+    public async Task<IActionResult> ChangeAiMode(int id, [FromBody] ChangeAiModeRequest request, CancellationToken cancellationToken = default) =>
+        (await sender.Send(new ChangeConversationAiModeCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Mode.ToString()), cancellationToken)).ToActionResult();
+
+    /// <summary>Send a standard text reply. Applies 24h-window validation.</summary>
+    [HttpPost("{id:int}/messages/text")]
     public async Task<IActionResult> SendMessage(int id, [FromBody] SendConversationMessageRequest request, CancellationToken cancellationToken)
     {
         var command = new SendConversationMessageCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id, request.Text, User.GetEmail());
@@ -160,6 +168,22 @@ public class ConversationsController(ISender sender) : ControllerBase
     public async Task<IActionResult> Handoff(int id, [FromBody] HandoffRequest request, CancellationToken cancellationToken)
     {
         var command = new HandoffConversationCommand(User.GetTenantId(), id, request.TargetGroupId, CurrentUserId(), User.GetEmail(), IsPrivileged());
+        return (await sender.Send(command, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Concise one-line AI summary of the conversation (cached; available anytime). US-4.7.</summary>
+    [HttpGet("{id:int}/summary")]
+    public async Task<IActionResult> GetSummary(int id, CancellationToken cancellationToken)
+    {
+        var query = new GetConversationSummaryQuery(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id);
+        return (await sender.Send(query, cancellationToken)).ToActionResult();
+    }
+
+    /// <summary>Generates the full structured AI summary (key points · decisions · what's needed) on demand. US-4.7.</summary>
+    [HttpPost("{id:int}/summary/full")]
+    public async Task<IActionResult> GenerateFullSummary(int id, CancellationToken cancellationToken)
+    {
+        var command = new GenerateFullSummaryCommand(User.GetTenantId(), CurrentUserId(), IsPrivileged(), id);
         return (await sender.Send(command, cancellationToken)).ToActionResult();
     }
 

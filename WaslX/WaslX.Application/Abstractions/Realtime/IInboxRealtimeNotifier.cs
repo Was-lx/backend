@@ -1,3 +1,6 @@
+using WaslX.Application.Features.Escalation.Models;
+using WaslX.Application.Features.Escalation.Screening;
+
 namespace WaslX.Application.Abstractions.Realtime;
 
 /// <summary>
@@ -28,6 +31,18 @@ public interface IInboxRealtimeNotifier
     Task NotificationCreatedAsync(int tenantId, int userId, object payload, CancellationToken cancellationToken = default);
 }
 
+/// <summary>Realtime payload for AI takeover events.</summary>
+public record ConversationTakenOverPayload(int ConversationId, DateTime OccurredAtUtc);
+
+/// <summary>Realtime payload for ownership transfer events.</summary>
+public record OwnershipTransferredPayload(
+    int ConversationId,
+    int? PreviousOwnerId,
+    int NewOwnerId,
+    string TransitionType,
+    DateTime OccurredAtUtc,
+    DateTime? OwnershipTransferredAtUtc);
+
 /// <summary>Realtime projection of a message (mirrors the inbox MessageResponse DTO; no tokens).</summary>
 public record InboxMessagePayload(
     int Id,
@@ -47,7 +62,14 @@ public record ConversationChangedPayload(
     int ConversationId,
     string Status,
     int? AssignedUserId,
-    DateTime? LastMessageAt);
+    DateTime? LastMessageAt,
+    bool HandledByAi = false,
+    string AiMode = "Active");
+
+/// <summary>Realtime projection of an AI mode change.</summary>
+public record ConversationAiModeChangedPayload(
+    int ConversationId,
+    string AiMode);
 
 /// <summary>Realtime projection of an internal note.</summary>
 public record InboxNotePayload(
@@ -56,3 +78,28 @@ public record InboxNotePayload(
     string Content,
     string AuthorName,
     DateTime CreatedAt);
+
+/// <summary>US-4.4: Auto-escalation triggered payload.</summary>
+public record ConversationEscalatedPayload(
+    int EscalationId,
+    int ConversationId,
+    int TenantId,
+    string Reason,
+    string Priority,
+    string Sentiment,
+    string Status,
+    DateTime OccurredAtUtc);
+
+/// <summary>Realtime projection of a message classification result.</summary>
+public record MessageClassificationPayload(
+    int ConversationId,
+    int MessageId,
+    MessageClassificationDto Classification);
+
+public record MessageClassificationDto(
+    string Topic,
+    string Language,
+    string Sentiment,
+    string Priority,
+    bool Escalate,
+    string Reason);

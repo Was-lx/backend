@@ -53,6 +53,7 @@ public static class AppErrors
     public static readonly Error ConversationInvalidTransition = new("Conversation.InvalidTransition", "That status change is not allowed from the current status", 400);
     public static readonly Error UserContextNotResolved = new("User.ContextNotResolved", "Could not resolve the current user for this workspace", 400);
     public static readonly Error OwnerLocked = new("User.OwnerLocked", "The workspace owner's role cannot be changed and the owner cannot be disabled.", 403);
+    public static readonly Error InvalidStatus = new("Conversation.InvalidStatus", "Invalid status or mode provided", 400);
 
     // Channels (Sprint 3)
     public static readonly Error ChannelNotFound = new("Channel.NotFound", "Channel not found", 404);
@@ -124,4 +125,13 @@ public static class AppErrors
     public static readonly Error MediaUploadFailed = new("Media.UploadFailed", "Could not upload the file", 502);
     public static readonly Error MediaFileRequired = new("Media.FileRequired", "A file is required", 400);
     public static readonly Error MediaUnsupportedType = new("Media.UnsupportedType", "This file type is not supported", 400);
+
+    // AI / RAG (chat, embeddings, vector store)
+    public static readonly Error AiGatewayError = new("Ai.GatewayError", "The AI gateway request failed", 502);
+    public static readonly Error AiGenerationFailed = new("Ai.GenerationFailed", "The AI model could not generate a response", 502);
+    public static readonly Error EmbeddingFailed = new("Ai.EmbeddingFailed", "Could not generate embeddings", 502);
+    public static readonly Error VectorStoreError = new("Vector.StoreError", "The vector store request failed", 502);
+    public static readonly Error KnowledgeDocumentNotFound = new("Knowledge.DocumentNotFound", "Knowledge document not found", 404);
+    public static readonly Error FaqNotFound = new("Knowledge.FaqNotFound", "FAQ not found", 404);
+    public static Error KnowledgeIngestionFailed(string reason) => new("Knowledge.IngestionFailed", reason, 502);
 }

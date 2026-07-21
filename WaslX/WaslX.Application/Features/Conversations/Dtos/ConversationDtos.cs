@@ -9,7 +9,9 @@ public record ConversationListItemResponse(
     string? LastMessagePreview,
     DateTime? LastMessageAt,
     int? AssignedUserId,
-    int UnreadCount);
+    int UnreadCount,
+    bool HandledByAi = false,
+    WaslX.Domain.SharedEnums.AiConversationMode AiMode = WaslX.Domain.SharedEnums.AiConversationMode.Active);
 
 /// <summary>A single message in a conversation thread (safe projection — no tokens).</summary>
 public record MessageResponse(
@@ -45,10 +47,28 @@ public record ConversationDetailResponse(
     int? GroupId,
     string? GroupName,
     int? CurrentStageId,
-    string? CurrentStageName);
+    string? CurrentStageName,
+    bool HandledByAi = false,
+    WaslX.Domain.SharedEnums.AiConversationMode AiMode = WaslX.Domain.SharedEnums.AiConversationMode.Active);
+
+/// <summary>Request to change the conversation's AI mode.</summary>
+public record ChangeAiModeRequest(WaslX.Domain.SharedEnums.AiConversationMode Mode);
 
 /// <summary>Returned after a status change: the new status plus the moves now valid from it.</summary>
 public record ConversationStatusResponse(int Id, string Status, IReadOnlyList<string> AllowedTransitions);
+
+/// <summary>
+/// AI conversation summary. <paramref name="ShortSummary"/> is always present; the structured
+/// <paramref name="FullSummary"/> is only populated once explicitly generated. <paramref name="IsStale"/>
+/// indicates newer messages have arrived since <paramref name="GeneratedAt"/> (the caller may refresh).
+/// </summary>
+public record ConversationSummaryResponse(
+    int ConversationId,
+    string ShortSummary,
+    string? FullSummary,
+    int MessageCount,
+    bool IsStale,
+    DateTime GeneratedAt);
 
 /// <summary>Cursor-paginated slice of items plus a flag indicating more are available.</summary>
 public record PagedResult<T>(IReadOnlyList<T> Items, bool HasMore);

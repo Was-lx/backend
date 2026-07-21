@@ -19,6 +19,7 @@ namespace WaslX.Persistance.Data
         public DbSet<Assignment> Assignments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<Conversation> Conversations { get; set; }
+        public DbSet<ConversationSummary> ConversationSummaries { get; set; }
         public DbSet<ConversationStageHistory> ConversationStageHistories { get; set; }
         public DbSet<ConversationTag> ConversationTags { get; set; }
         public DbSet<Customer> Customers { get; set; }
@@ -27,6 +28,7 @@ namespace WaslX.Persistance.Data
         public DbSet<InternalNote> InternalNotes { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<KnowledgeVector> KnowledgeVectors { get; set; }
+        public DbSet<KnowledgeDocument> KnowledgeDocuments { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Permission> Permissions { get; set; }
@@ -50,6 +52,11 @@ namespace WaslX.Persistance.Data
         public DbSet<UserGroup> UserGroups { get; set; }
         public DbSet<WhatsAppAccount> WhatsAppAccounts { get; set; }
         public DbSet<WhatsAppWebhookLog> WhatsAppWebhookLogs { get; set; }
+
+        // ── Sprint 4: screening & AI ──
+        public DbSet<TenantEscalationSettings> TenantEscalationSettings { get; set; }
+        public DbSet<TenantAiAgentSettings> TenantAiAgentSettings { get; set; }
+        public DbSet<AiAgentNumberSettings> AiAgentNumberSettings { get; set; }
 
         // ── Sprint 3: channels, distribution & working hours ──
         public DbSet<Channel> Channels { get; set; }

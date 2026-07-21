@@ -1,4 +1,7 @@
 <Solution>
+  <Project Path="docker-compose.dcproj">
+    <Build Solution="Release|*" />
+  </Project>
   <Project Path="WaslX.Api/WaslX.Api.csproj" Id="794ff59b-4d0d-4058-95ad-a44b9361cf17" />
   <Project Path="WaslX.Application/WaslX.Application.csproj" Id="b7dbdf80-f901-4093-84c9-f3fe31744d9a" />
   <Project Path="WaslX.Domain/WaslX.Domain.csproj" Id="52ea0371-9608-4b11-912c-69828628ccbd" />
