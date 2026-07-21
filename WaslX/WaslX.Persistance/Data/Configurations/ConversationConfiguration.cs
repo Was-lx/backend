@@ -19,6 +19,7 @@ namespace WaslX.Persistance.Configurations
             builder.Property(x => x.LastCustomerMessageAt).HasColumnName("last_customer_message_at");
             builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
             builder.Property(x => x.Priority).HasConversion<string>().HasMaxLength(50);
+            builder.Property(x => x.AiMode).HasDefaultValue(AiConversationMode.Active);
             builder.Property(x => x.EscalationReason).HasMaxLength(500);
             builder.HasOne(x => x.Tenant).WithMany(x => x.Conversations).HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.WhatsAppAccount).WithMany(x => x.Conversations).HasForeignKey(x => x.WhatsAppAccountId).OnDelete(DeleteBehavior.Restrict);

@@ -38,7 +38,7 @@ public sealed class AiProviderConfigHealthCheck(IConfiguration configuration) : 
     // Any of these keys being populated is treated as "AI provider is configured".
     private static readonly string[] KeyCandidates =
     [
-        "OpenAi:ApiKey", "OpenAI:ApiKey", "Ai:ApiKey", "AiOptions:ApiKey", "OpenAiOptions:ApiKey"
+        "Groq:ApiKey", "HuggingFace:ApiKey"
     ];
 
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
