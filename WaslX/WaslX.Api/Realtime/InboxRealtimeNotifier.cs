@@ -23,4 +23,8 @@ internal sealed class InboxRealtimeNotifier(IHubContext<InboxHub> hub) : IInboxR
 
     public Task NoteAddedAsync(int tenantId, InboxNotePayload note, CancellationToken cancellationToken = default) =>
         hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("NoteAdded", note, cancellationToken);
+
+    public Task NotificationCreatedAsync(int tenantId, int userId, object payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId))
+            .SendAsync("NotificationCreated", new { userId, notification = payload }, cancellationToken);
 }

@@ -383,8 +383,13 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
                 // Meta is the authority on the 24-hour window: error 131047 means the customer-service
                 // window is closed (>24h since the customer last replied), so only templates are allowed.
                 // Surface it distinctly so the caller can reconcile local state and prompt for a template.
-                var error = IsWindowClosedError(body) ? AppErrors.WhatsAppWindowClosed : AppErrors.WhatsAppSendFailed;
-                return LogAndFail<string>(error, "send message", body);
+                if (IsWindowClosedError(body))
+                    return LogAndFail<string>(AppErrors.WhatsAppWindowClosed, "send message", body);
+                // Otherwise surface Meta's *actual* reason (e.g. bad template language, missing template
+                // parameters, recipient not in the allowed test list) instead of a generic "send failed",
+                // so it reaches the campaign recipient row / inbox toast where the user can act on it.
+                var sendError = new Error(AppErrors.WhatsAppSendFailed.Code, ExtractMetaError(body), AppErrors.WhatsAppSendFailed.StatusCode);
+                return LogAndFail<string>(sendError, "send message", body);
             }
 
             using var doc = JsonDocument.Parse(body);
@@ -408,6 +413,33 @@ internal sealed class MetaGraphApiService : IMetaGraphApiService
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         return request;
+    }
+
+    /// <summary>
+    /// Pulls Meta's human-readable failure reason out of a Graph API error body
+    /// (<c>{ "error": { "message": ..., "code": ..., "error_data": { "details": ... } } }</c>),
+    /// preferring the specific <c>details</c> over the generic message and appending the numeric code.
+    /// Falls back to a generic string when the body can't be parsed.
+    /// </summary>
+    private static string ExtractMetaError(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("error", out var error))
+            {
+                var message = error.TryGetProperty("message", out var m) ? m.GetString() : null;
+                var details = error.TryGetProperty("error_data", out var ed) && ed.TryGetProperty("details", out var d)
+                    ? d.GetString() : null;
+                var text = !string.IsNullOrWhiteSpace(details) ? details : message;
+                var code = error.TryGetProperty("code", out var c) && c.ValueKind == JsonValueKind.Number
+                    ? c.GetInt32() : (int?)null;
+                if (!string.IsNullOrWhiteSpace(text))
+                    return code is { } cd ? $"WhatsApp: {text} (Meta #{cd})" : $"WhatsApp: {text}";
+            }
+        }
+        catch { /* fall through to the generic message */ }
+        return AppErrors.WhatsAppSendFailed.Description;
     }
 
     /// <summary>

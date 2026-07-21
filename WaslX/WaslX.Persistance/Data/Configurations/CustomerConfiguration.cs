@@ -1,5 +1,4 @@
 using WaslX.Domain.Entities;
-using WaslX.Domain.SharedEnums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -14,7 +13,6 @@ namespace WaslX.Persistance.Configurations
             builder.Property(x => x.Id).HasColumnName("customer_id");
             builder.Property(x => x.PhoneNumber).HasMaxLength(30).IsRequired();
             builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            builder.Property(x => x.Tier).HasConversion<string>().HasMaxLength(50);
             builder.HasOne(x => x.Tenant).WithMany(x => x.Customers).HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
         }
     }

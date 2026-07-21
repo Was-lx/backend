@@ -28,7 +28,9 @@ namespace WaslX.Persistance.Data
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<KnowledgeVector> KnowledgeVectors { get; set; }
         public DbSet<Message> Messages { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
         public DbSet<Permission> Permissions { get; set; }
+        public DbSet<PlatformAuditLog> PlatformAuditLogs { get; set; }
         public DbSet<PlatformUser> PlatformUsers { get; set; }
         public new DbSet<Role> Roles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
@@ -58,6 +60,15 @@ namespace WaslX.Persistance.Data
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<ShiftDay> ShiftDays { get; set; }
         public DbSet<AgentShift> AgentShifts { get; set; }
+
+        // ── Sprint 6: platform settings, AI usage & cost monitoring ──
+        public DbSet<AiUsageRecord> AiUsageRecords { get; set; }
+        public DbSet<BudgetAlert> BudgetAlerts { get; set; }
+        public DbSet<PlatformCredential> PlatformCredentials { get; set; }
+        public DbSet<FeatureFlag> FeatureFlags { get; set; }
+        public DbSet<PlatformSetting> PlatformSettings { get; set; }
+        public DbSet<ImpersonationSession> ImpersonationSessions { get; set; }
+        public DbSet<Announcement> Announcements { get; set; }
     }
 }
 

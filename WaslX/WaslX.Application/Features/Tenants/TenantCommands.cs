@@ -1,6 +1,7 @@
 using WaslX.Application.Abstractions.Mediator;
 using WaslX.Application.Abstractions.Tenants;
 using WaslX.Application.Features.Auth.Dtos;
+using WaslX.Application.Features.Platform.Dtos;
 using WaslX.Application.Features.Tenants.Dtos;
 using WaslX.Domain.Results;
 
@@ -29,11 +30,33 @@ public class GetTenantsQueryHandler(ITenantService svc) : IQueryHandler<GetTenan
         svc.GetAllAsync(cancellationToken);
 }
 
-public record SetTenantStatusCommand(int TenantId, string Status) : ICommand;
+public record SetTenantStatusCommand(int TenantId, string Status, PlatformActor Actor) : ICommand;
 public class SetTenantStatusCommandHandler(ITenantService svc) : ICommandHandler<SetTenantStatusCommand>
 {
     public Task<Result> Handle(SetTenantStatusCommand request, CancellationToken cancellationToken) =>
-        svc.SetStatusAsync(request.TenantId, request.Status, cancellationToken);
+        svc.SetStatusAsync(request.TenantId, request.Status, request.Actor, cancellationToken);
+}
+
+// ── SuperAdmin: tenant lifecycle (US-6.2) ──
+public record GetTenantDetailQuery(int TenantId) : IQuery<TenantDetailResponse>;
+public class GetTenantDetailQueryHandler(ITenantService svc) : IQueryHandler<GetTenantDetailQuery, TenantDetailResponse>
+{
+    public Task<Result<TenantDetailResponse>> Handle(GetTenantDetailQuery request, CancellationToken cancellationToken) =>
+        svc.GetDetailAsync(request.TenantId, cancellationToken);
+}
+
+public record ConfigureTenantCommand(int TenantId, ConfigureTenantInput Input, PlatformActor Actor) : ICommand;
+public class ConfigureTenantCommandHandler(ITenantService svc) : ICommandHandler<ConfigureTenantCommand>
+{
+    public Task<Result> Handle(ConfigureTenantCommand request, CancellationToken cancellationToken) =>
+        svc.ConfigureAsync(request.TenantId, request.Input, request.Actor, cancellationToken);
+}
+
+public record SoftDeleteTenantCommand(int TenantId, PlatformActor Actor) : ICommand;
+public class SoftDeleteTenantCommandHandler(ITenantService svc) : ICommandHandler<SoftDeleteTenantCommand>
+{
+    public Task<Result> Handle(SoftDeleteTenantCommand request, CancellationToken cancellationToken) =>
+        svc.SoftDeleteAsync(request.TenantId, request.Actor, cancellationToken);
 }
 
 // ── Tenant: own profile & onboarding ──

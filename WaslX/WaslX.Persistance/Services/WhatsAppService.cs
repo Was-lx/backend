@@ -100,7 +100,10 @@ internal sealed class WhatsAppService(
             return Result.Failure<WhatsAppAccountDto>(AppErrors.NoTenantContext);
 
         var account = await db.WhatsAppAccounts.AsNoTracking().FirstOrDefaultAsync(x => x.TenantId == tid, cancellationToken);
-        return account is null
+        // A DISCONNECTED number is treated as "no active connection": the tenant sees the connect
+        // wizard again, and re-connecting upserts this same row back to Connected. Without this, a
+        // disconnected account kept showing on screen as if it were still connected.
+        return account is null || account.Status == WhatsAppAccountStatus.Disconnected
             ? Result.Failure<WhatsAppAccountDto>(AppErrors.WhatsAppAccountNotFound)
             : Result.Success(Map(account));
     }
@@ -296,8 +299,7 @@ internal sealed class WhatsAppService(
         {
             TenantId = tenantId,
             PhoneNumber = phone,
-            Name = phone,
-            Tier = CustomerTier.Standard
+            Name = phone
         };
         await db.Customers.AddAsync(customer, cancellationToken);
         await db.SaveChangesAsync(cancellationToken); // materialise Id for FK use

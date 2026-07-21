@@ -132,7 +132,6 @@ internal sealed class ConversationService(
                 c.Id,
                 c.Customer.Name,
                 c.Customer.PhoneNumber,
-                c.Customer.VipFlag,
                 c.Status,
                 c.AssignedUserId,
                 AssignedUserName = c.AssignedUser != null ? c.AssignedUser.Name : null,
@@ -168,7 +167,7 @@ internal sealed class ConversationService(
         var windowState = windowService.EvaluateConversation(transient);
 
         return Result.Success(new ConversationDetailResponse(
-            detail.Id, detail.Name, detail.PhoneNumber, detail.VipFlag, detail.Status.ToString(),
+            detail.Id, detail.Name, detail.PhoneNumber, detail.Status.ToString(),
             allowed, detail.AssignedUserId, detail.AssignedUserName, detail.Tags,
             detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt,
             windowState.WindowExpiresAt, windowState.IsOpen, windowState.WindowType.ToString(), (long)windowState.RemainingTime.TotalSeconds, detail.MessageCount,

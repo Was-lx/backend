@@ -224,21 +224,75 @@ internal sealed class WhatsAppWebhookProcessor(
             return;
 
         var message = await db.Messages.FirstOrDefaultAsync(m => m.WhatsAppMessageId == waMessageId, cancellationToken);
-        if (message is null)
-            return;
+        Conversation? conversation = null;
 
-        message.Status = MapStatus(statusString, message.Status);
-        message.UpdatedAt = DateTime.UtcNow;
+        if (message is not null)
+        {
+            message.Status = MapStatus(statusString, message.Status);
+            message.UpdatedAt = DateTime.UtcNow;
 
-        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == message.ConversationId, cancellationToken);
+            conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == message.ConversationId, cancellationToken);
 
-        if (conversation is not null)
-            windowService.UpdateFromMetaStatus(conversation, ExtractConversationExpiry(status));
+            if (conversation is not null)
+                windowService.UpdateFromMetaStatus(conversation, ExtractConversationExpiry(status));
+        }
+
+        // Mirror the delivery status onto a matching campaign recipient (if this send was a campaign
+        // broadcast). Campaign analytics derive from CampaignRecipient.Status, so advancing it here is
+        // what surfaces Delivered/Read in the campaign dashboard.
+        await ApplyCampaignRecipientStatusAsync(waMessageId, statusString, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
 
-        if (conversation is not null)
+        if (message is not null && conversation is not null)
             await notifier.MessageStatusChangedAsync(conversation.TenantId, message.ConversationId, message.Id, message.Status.ToString(), cancellationToken);
+    }
+
+    /// <summary>
+    /// Advances the campaign recipient that owns this Meta message id (queued/sent → delivered → read,
+    /// or → failed) from a delivery-status webhook. Forward-only and idempotent, so Meta's webhook
+    /// retries and out-of-order statuses never double-count or regress. No-op when the message was not
+    /// a campaign send (no recipient carries this id).
+    /// </summary>
+    private async Task ApplyCampaignRecipientStatusAsync(string waMessageId, string statusString, CancellationToken cancellationToken)
+    {
+        var recipient = await db.CampaignRecipients
+            .FirstOrDefaultAsync(r => r.WhatsAppMessageId == waMessageId, cancellationToken);
+        if (recipient is null)
+            return;
+
+        var now = DateTime.UtcNow;
+        switch (statusString)
+        {
+            case "delivered":
+                if (recipient.Status is "queued" or "sent")
+                {
+                    recipient.Status = "delivered";
+                    recipient.DeliveredAt ??= now;
+                    recipient.UpdatedAt = now;
+                }
+                break;
+
+            case "read":
+                if (recipient.Status is "queued" or "sent" or "delivered")
+                {
+                    recipient.DeliveredAt ??= now; // read implies delivered (a delivered webhook may be skipped)
+                    recipient.Status = "read";
+                    recipient.ReadAt ??= now;
+                    recipient.UpdatedAt = now;
+                }
+                break;
+
+            case "failed":
+                if (recipient.Status != "failed")
+                {
+                    recipient.Status = "failed";
+                    recipient.UpdatedAt = now;
+                }
+                break;
+
+            // "sent" is already recorded at send time — ignore to avoid regressing a later status.
+        }
     }
 
     /// <summary>

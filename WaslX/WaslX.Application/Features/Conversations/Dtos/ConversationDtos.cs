@@ -29,7 +29,6 @@ public record ConversationDetailResponse(
     int Id,
     string CustomerName,
     string CustomerPhone,
-    bool CustomerVip,
     string Status,
     IReadOnlyList<string> AllowedTransitions,
     int? AssignedUserId,

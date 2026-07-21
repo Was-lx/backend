@@ -20,6 +20,12 @@ public interface IInboxRealtimeNotifier
 
     /// <summary>An internal team note was added to a conversation (never sent to the customer).</summary>
     Task NoteAddedAsync(int tenantId, InboxNotePayload note, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// A new in-app notification was created for a specific user. Broadcast to the tenant group with
+    /// the target <paramref name="userId"/> in the payload; the client shows it only if it is the recipient.
+    /// </summary>
+    Task NotificationCreatedAsync(int tenantId, int userId, object payload, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Realtime projection of a message (mirrors the inbox MessageResponse DTO; no tokens).</summary>

@@ -5,17 +5,23 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WaslX.Application.Abstractions.AgentAccess;
 using WaslX.Application.Abstractions.Assignments;
+using WaslX.Application.Abstractions.Audit;
 using WaslX.Application.Abstractions.Billing;
+using WaslX.Application.Abstractions.Campaigns;
 using WaslX.Application.Abstractions.Channels;
 using WaslX.Application.Abstractions.ConversationStages;
+using WaslX.Application.Abstractions.Customers;
 using WaslX.Application.Abstractions.Distribution;
 using WaslX.Application.Abstractions.Groups;
 using WaslX.Application.Abstractions.Identity;
 using WaslX.Application.Abstractions.Inbox;
 using WaslX.Application.Abstractions.Maintenance;
+using WaslX.Application.Abstractions.Notifications;
 using WaslX.Application.Abstractions.Permissions;
+using WaslX.Application.Abstractions.Platform;
 using WaslX.Application.Abstractions.Presence;
 using WaslX.Application.Abstractions.Profile;
+using WaslX.Application.Abstractions.Reporting;
 using WaslX.Application.Abstractions.Tags;
 using WaslX.Application.Abstractions.Tenants;
 using WaslX.Application.Abstractions.WhatsApp;
@@ -100,6 +106,39 @@ namespace WaslX.Persistance
 
             // Tags (Sprint 3).
             services.AddScoped<ITagService, TagService>();
+
+            // Reporting & analytics dashboards + export (Sprint 5 — FR-RPT, read-only).
+            services.AddScoped<IReportingService, ReportingService>();
+
+            // Campaigns / broadcasts + Hangfire send engine (Sprint 5 — FR-CMP).
+            services.AddScoped<ICampaignService, CampaignService>();
+            services.AddScoped<ICustomerService, CustomerService>();
+            services.AddScoped<ICampaignSendJob, CampaignSendJob>();
+
+            // In-app notifications (Sprint 5 — FR-NOTIF).
+            services.AddScoped<INotificationService, NotificationService>();
+
+            // Immutable tenant audit trail (Sprint 5 — FR-AUDIT / US-5.7).
+            services.AddScoped<IAuditService, AuditService>();
+
+            // Global, immutable platform audit trail (Sprint 6 — Platform Owner console).
+            services.AddScoped<IPlatformAuditService, PlatformAuditService>();
+
+            // SuperAdmin console management (Sprint 6 — US-6.1 super-admin users, US-6.3 billing/invoicing).
+            services.AddScoped<ISuperAdminUserService, SuperAdminUserService>();
+            services.AddScoped<ISuperAdminBillingService, SuperAdminBillingService>();
+
+            // Platform monitoring & configuration (Sprint 6 — US-6.4 usage, US-6.5 AI cost,
+            // US-6.6 credentials/secrets, US-6.7 feature flags + global policy). All cross-tenant.
+            services.AddScoped<IPlatformMetricsService, PlatformMetricsService>();
+            services.AddScoped<IAiCostService, AiCostService>();
+            services.AddScoped<IPlatformCredentialService, PlatformCredentialService>();
+            services.AddScoped<IFeatureFlagService, FeatureFlagService>();
+            services.AddScoped<IPlatformPolicyService, PlatformPolicyService>();
+
+            // Audited impersonation + platform announcements (Sprint 6 — US-6.8, US-6.10b). Cross-tenant.
+            services.AddScoped<IImpersonationService, ImpersonationService>();
+            services.AddScoped<IAnnouncementService, AnnouncementService>();
 
             // Manual assignment / reassignment + unassigned queue (Sprint 3).
             services.AddScoped<IAssignmentService, AssignmentService>();

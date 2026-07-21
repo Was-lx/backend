@@ -13,6 +13,12 @@ namespace WaslX.Domain.Entities
         public DateTime? DeliveredAt { get; set; }
         public DateTime? ReadAt { get; set; }
 
+        /// <summary>
+        /// Meta's message id returned when this recipient's template was sent. Used by the WhatsApp
+        /// status webhook to correlate delivered/read/failed callbacks back to this recipient.
+        /// </summary>
+        public string? WhatsAppMessageId { get; set; }
+
         public Campaign Campaign { get; set; } = null!;
         public Customer Customer { get; set; } = null!;
     }

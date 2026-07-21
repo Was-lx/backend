@@ -53,6 +53,40 @@ public class JwtTokenGenerator(IOptions<JwtSettings> jwtSettings) : IJwtTokenGen
         return new AccessToken(tokenString, expires);
     }
 
+    public AccessToken GenerateImpersonationToken(string userId, string email, string fullName, IEnumerable<string> roles, int tenantId, int? domainUserId, DateTime expiresAt, string impersonationSessionId)
+    {
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, userId),
+            new(JwtRegisteredClaimNames.Email, email),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(ClaimTypes.NameIdentifier, userId),
+            new(ClaimTypes.GivenName, fullName),
+            new("tenantId", tenantId.ToString()),
+            // Marks this as an impersonation session token and ties it back to the audited session row.
+            new("imp", impersonationSessionId)
+        };
+
+        if (domainUserId is not null)
+            claims.Add(new Claim("duid", domainUserId.Value.ToString()));
+
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Key));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: _settings.Issuer,
+            audience: _settings.Audience,
+            claims: claims,
+            expires: expiresAt,
+            signingCredentials: credentials);
+
+        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+        return new AccessToken(tokenString, expiresAt);
+    }
+
     public RefreshTokenValue GenerateRefreshToken()
     {
         var randomBytes = RandomNumberGenerator.GetBytes(64);

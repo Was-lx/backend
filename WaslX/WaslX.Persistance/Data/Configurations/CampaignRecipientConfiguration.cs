@@ -22,6 +22,10 @@ namespace WaslX.Persistance.Configurations
             builder.Property(x => x.DeliveredAt);
             builder.Property(x => x.ReadAt);
 
+            builder.Property(x => x.WhatsAppMessageId).HasMaxLength(200);
+            // The status webhook correlates delivered/read/failed callbacks by this Meta message id.
+            builder.HasIndex(x => x.WhatsAppMessageId);
+
             builder.HasOne(x => x.Campaign)
                 .WithMany(x => x.Recipients)
                 .HasForeignKey(x => x.CampaignId)

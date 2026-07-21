@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using WaslX.Api.Authorization;
+using WaslX.Api.HealthChecks;
 using WaslX.Api.Realtime;
 using WaslX.Application.Abstractions.Permissions;
 using WaslX.Application.Abstractions.Realtime;
@@ -27,6 +28,17 @@ namespace WaslX.Api
             services.AddOpenApi();
 
             services.AddHttpContextAccessor();
+
+            // Data Protection backs the encrypted-at-rest platform credential store (US-6.6).
+            services.AddDataProtection();
+
+            // System health monitoring surfaced to the Platform Owner (US-6.10a). Each check is
+            // lightweight and never throws; the SuperAdmin health endpoint reports each component's status.
+            services.AddHealthChecks()
+                .AddCheck<DatabaseHealthCheck>("database", tags: ["system"])
+                .AddCheck<HangfireHealthCheck>("hangfire", tags: ["system"])
+                .AddCheck<AiProviderConfigHealthCheck>("ai-provider", tags: ["config"])
+                .AddCheck<WhatsAppConfigHealthCheck>("whatsapp", tags: ["config"]);
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>

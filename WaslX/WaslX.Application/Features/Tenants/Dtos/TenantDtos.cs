@@ -59,3 +59,70 @@ public record UpdateTenantProfileInput(
     string? Industry,
     string? Phone,
     string CustomerType);
+
+/// <summary>
+/// Full tenant detail for the SuperAdmin console: profile, plan, lifecycle/billing status, live
+/// resource usage vs. the plan's limits, the workspace users and the tenant's invoices. The shape
+/// mirrors the frontend TenantDetail view-model exactly (the Overview / Users / Invoices tabs read
+/// straight off this object).
+/// </summary>
+public record TenantDetailResponse(
+    int Id,
+    string Name,
+    string? Website,
+    string? Industry,
+    string? PhoneNumber,
+    string CustomerType,
+    string Status,
+    string BillingStatus,
+    int PlanId,
+    string PlanName,
+    decimal Price,
+    string BillingCycle,
+    DateTime? TrialEndsAt,
+    int? TrialDaysLeft,
+    DateTime? CurrentPeriodEnd,
+    DateTime CreatedAt,
+    TenantUsageDto Usage,
+    decimal Mrr,
+    IReadOnlyList<TenantUserRowDto> Users,
+    IReadOnlyList<TenantInvoiceDto> Invoices);
+
+/// <summary>Live resource usage vs. the plan's limits, for the tenant-detail overview.</summary>
+public record TenantUsageDto(
+    int AgentsUsed,
+    int MaxAgents,
+    int NumbersUsed,
+    int MaxNumbers,
+    int MsgQuota,
+    int AiQuota);
+
+/// <summary>One workspace user in the tenant-detail Users tab.</summary>
+public record TenantUserRowDto(
+    string Id,
+    string Name,
+    string Email,
+    string Role,
+    bool IsActive);
+
+/// <summary>One invoice in the tenant-detail Invoices tab (mirrors the platform PlatformInvoice VM).</summary>
+public record TenantInvoiceDto(
+    int Id,
+    int TenantId,
+    string? TenantName,
+    decimal Amount,
+    string Status,
+    DateTime? PeriodStart,
+    DateTime? PeriodEnd,
+    DateTime IssuedAt,
+    DateTime? DueDate,
+    DateTime? PaidAt);
+
+/// <summary>SuperAdmin: configure a tenant — its profile plus which plan it is on.</summary>
+public record ConfigureTenantInput(
+    string Name,
+    string? Website,
+    string? Industry,
+    string? Phone,
+    string CustomerType,
+    int PlanId);

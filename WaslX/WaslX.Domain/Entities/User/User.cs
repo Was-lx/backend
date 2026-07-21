@@ -24,6 +24,7 @@ namespace WaslX.Domain.Entities
         public ICollection<RoutingDecision> RoutingDecisions { get; set; } = new HashSet<RoutingDecision>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new HashSet<AuditLog>();
         public ICollection<Campaign> CreatedCampaigns { get; set; } = new HashSet<Campaign>();
+        public ICollection<Notification> Notifications { get; set; } = new HashSet<Notification>();
 
         // ── Sprint 3: presence & availability (drive Round Robin distribution) ──
         public bool IsOnline { get; set; }

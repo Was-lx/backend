@@ -8,10 +8,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WaslX.Application.Abstractions.Authentication;
 using WaslX.Application.Abstractions.Identity;
+using WaslX.Application.Abstractions.Tenants;
 using WaslX.Application.Features.Auth.Dtos;
 using WaslX.Application.Features.Roles.Dtos;
 using WaslX.Application.Features.Users.Dtos;
 using WaslX.Domain.Results;
+using WaslX.Domain.SharedEnums;
 using WaslX.Infrastructure.Email;
 using WaslX.Infrastructure.Settings;
 
@@ -22,6 +24,7 @@ internal class AuthSerive(
     RoleManager<ApplicationRole> roleManager,
     IJwtTokenGenerator jwtTokenGenerator,
     IDomainUserDirectory domainUsers,
+    ITenantService tenantService,
     IEmailSender emailSender,
     IOptions<AppSettings> appSettings,
     ILogger<AuthSerive> logger) : IAuthService
@@ -30,6 +33,7 @@ internal class AuthSerive(
     private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
     private readonly IJwtTokenGenerator _jwt = jwtTokenGenerator;
     private readonly IDomainUserDirectory _domainUsers = domainUsers;
+    private readonly ITenantService _tenantService = tenantService;
     private readonly IEmailSender _emailSender = emailSender;
     private readonly AppSettings _appSettings = appSettings.Value;
     private readonly ILogger<AuthSerive> _logger = logger;
@@ -93,10 +97,28 @@ internal class AuthSerive(
         if (!user.EmailConfirmed)
             return Result.Failure<AuthResponse>(UserErrors.EmailNotConfirmed);
 
+        // Block sign-in for a suspended/cancelled workspace. A SuperAdmin has no tenant and is never blocked.
+        if (user.TenantId is { } tenantId && await IsTenantBlockedAsync(tenantId, cancellationToken))
+            return Result.Failure<AuthResponse>(AppErrors.TenantSuspended);
+
         await _userManager.ResetAccessFailedCountAsync(user);
 
         var response = await BuildAuthResponseAsync(user);
         return Result.Success(response);
+    }
+
+    /// <summary>
+    /// Whether the tenant's lifecycle status forbids member sign-in (Suspended or Cancelled).
+    /// Reuses the existing tenant profile read; if the tenant can't be resolved we do not block.
+    /// </summary>
+    private async Task<bool> IsTenantBlockedAsync(int tenantId, CancellationToken cancellationToken)
+    {
+        var profile = await _tenantService.GetProfileAsync(tenantId, cancellationToken);
+        if (profile.IsFailure || profile.Value is null)
+            return false;
+
+        return Enum.TryParse<TenantStatus>(profile.Value.Status, true, out var status)
+            && status is TenantStatus.Suspended or TenantStatus.Cancelled;
     }
 
     // ----------------------------------------------------------- Refresh token
