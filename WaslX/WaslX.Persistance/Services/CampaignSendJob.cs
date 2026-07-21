@@ -116,7 +116,7 @@ internal sealed class CampaignSendJob(
             {
                 var send = await whatsApp.SendTemplateAsync(
                     campaign.TenantId, phone, campaign.TemplateName, languageCode,
-                    parameters: null, senderUserId: null, cancellationToken);
+                    parameters: null, senderUserId: null, cancellationToken: cancellationToken);
 
                 if (send.IsSuccess)
                 {

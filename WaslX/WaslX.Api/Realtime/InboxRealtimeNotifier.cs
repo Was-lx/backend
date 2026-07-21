@@ -31,4 +31,31 @@ internal sealed class InboxRealtimeNotifier(IHubContext<InboxHub> hub) : IInboxR
     public Task NotificationCreatedAsync(int tenantId, int userId, object payload, CancellationToken cancellationToken = default) =>
         hub.Clients.Group(InboxHub.TenantGroup(tenantId))
             .SendAsync("NotificationCreated", new { userId, notification = payload }, cancellationToken);
+
+    public Task MessageClassificationUpdatedAsync(int tenantId, MessageClassificationPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("MessageClassificationUpdated", payload, cancellationToken);
+
+    public Task EscalationRecommendationUpdatedAsync(int tenantId, EscalationScoringResult result, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationRecommendationUpdated", result, cancellationToken);
+
+    public Task EscalationAssignmentConfirmedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationAssignmentConfirmed", result, cancellationToken);
+
+    public Task EscalationOverrideAppliedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationOverrideApplied", result, cancellationToken);
+
+    public Task EscalationAutoAssignedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationAutoAssigned", result, cancellationToken);
+
+    public Task ConversationOwnershipTransferredAsync(int tenantId, OwnershipTransferredPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationOwnershipTransferred", payload, cancellationToken);
+
+    public Task ConversationEscalatedAsync(int tenantId, ConversationEscalatedPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationEscalated", payload, cancellationToken);
+
+    public Task ConversationTakenOverAsync(int tenantId, ConversationTakenOverPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationTakenOver", payload, cancellationToken);
+
+    public Task ConversationAiModeChangedAsync(int tenantId, ConversationAiModeChangedPayload payload, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationAiModeChanged", payload, cancellationToken);
 }
