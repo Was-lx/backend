@@ -58,4 +58,7 @@ internal sealed class InboxRealtimeNotifier(IHubContext<InboxHub> hub) : IInboxR
 
     public Task ConversationAiModeChangedAsync(int tenantId, ConversationAiModeChangedPayload payload, CancellationToken cancellationToken = default) =>
         hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("ConversationAiModeChanged", payload, cancellationToken);
+
+    public Task EscalationRejectedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default) =>
+        hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationRejected", result, cancellationToken);
 }

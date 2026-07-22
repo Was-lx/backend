@@ -69,5 +69,7 @@ namespace WaslX.Application.Features.Escalation.Services
         internal static readonly Error AlreadyAssigned = new Error("Escalation.AlreadyAssigned", "Escalation is already assigned.", 400);
         internal static readonly Error NoTarget = new Error("Escalation.NoTarget", "No eligible agent target available.", 400);
         internal static readonly Error NotRecommended = new Error("Escalation.NotRecommended", "Escalation is not in recommended status.", 400);
+        internal static readonly Error AlreadyCancelled = new Error("Escalation.AlreadyCancelled", "Escalation has already been cancelled.", 400);
+        internal static readonly Error CannotReject = new Error("Escalation.CannotReject", "Escalation cannot be rejected in its current status.", 400);
     }
 }

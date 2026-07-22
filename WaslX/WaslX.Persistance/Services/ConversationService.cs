@@ -3,6 +3,7 @@ using WaslX.Domain.Entities;
 using WaslX.Infrastructure.Identity;
 using WaslX.Application.Abstractions.Inbox;
 using WaslX.Application.Abstractions.Media;
+using WaslX.Application.Abstractions.Performance;
 using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Application.Features.Conversations.Dtos;
@@ -18,7 +19,8 @@ internal sealed class ConversationService(
     IWhatsAppService whatsApp,
     IMediaStorageService mediaStorage,
     IInboxRealtimeNotifier notifier,
-    IConversationWindowService windowService) : IConversationService
+    IConversationWindowService windowService,
+    IAgentPerformanceUpdateService performanceUpdate) : IConversationService
 {
     public async Task<Result<PagedResult<ConversationListItemResponse>>> GetConversationsAsync(
         int? tenantId, int currentUserId, bool isPrivileged, int page, int pageSize,
@@ -153,7 +155,21 @@ internal sealed class ConversationService(
                 c.CurrentStageId,
                 CurrentStageName = c.CurrentStage != null ? c.CurrentStage.Name : null,
                 c.HandledByAi,
-                c.AiMode
+                c.AiMode,
+                LatestEscalation = db.Escalations
+                    .Where(e => e.ConversationId == c.Id)
+                    .OrderByDescending(e => e.Id)
+                    .Select(e => new
+                    {
+                        e.Id,
+                        e.Status,
+                        e.EscalationReason,
+                        e.Priority,
+                        e.Topic,
+                        e.Sentiment,
+                        e.SuggestedScore
+                    })
+                    .FirstOrDefault()
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -176,7 +192,14 @@ internal sealed class ConversationService(
             detail.CreatedAt, detail.LastMessageAt, detail.LastInboundAt,
             windowState.WindowExpiresAt, windowState.IsOpen, windowState.WindowType.ToString(), (long)windowState.RemainingTime.TotalSeconds, detail.MessageCount,
             detail.GroupId, detail.GroupName, detail.CurrentStageId, detail.CurrentStageName,
-            detail.HandledByAi, detail.AiMode));
+            detail.HandledByAi, detail.AiMode,
+            detail.LatestEscalation != null && detail.LatestEscalation.Status != WaslX.Domain.SharedEnums.EscalationStatus.Cancelled && detail.LatestEscalation.Status != WaslX.Domain.SharedEnums.EscalationStatus.Resolved,
+            detail.LatestEscalation?.EscalationReason,
+            detail.LatestEscalation?.Priority,
+            detail.LatestEscalation?.Topic,
+            detail.LatestEscalation?.Sentiment,
+            detail.LatestEscalation?.SuggestedScore,
+            detail.LatestEscalation?.Id));
     }
 
     public async Task<Result<ConversationStatusResponse>> ChangeStatusAsync(
@@ -196,9 +219,20 @@ internal sealed class ConversationService(
         if (conversation.Status != target && !ConversationStatusTransitions.CanTransition(conversation.Status, target))
             return Result.Failure<ConversationStatusResponse>(AppErrors.ConversationInvalidTransition);
 
+        var previousStatus = conversation.Status;
+
         conversation.Status = target;
         conversation.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+
+        if (conversation.AssignedUserId is { } assignedUserId)
+        {
+            if (previousStatus != ConversationStatus.Resolved && target == ConversationStatus.Resolved)
+                await performanceUpdate.RecordConversationClosedAsync(assignedUserId, resolved: true, cancellationToken);
+
+            if (previousStatus == ConversationStatus.Resolved && target != ConversationStatus.Resolved)
+                await performanceUpdate.RecordConversationReopenedAsync(assignedUserId, cancellationToken);
+        }
 
         await notifier.ConversationChangedAsync(tenantId!.Value, new ConversationChangedPayload(
             conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);

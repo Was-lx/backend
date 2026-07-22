@@ -5,6 +5,7 @@ namespace WaslX.Domain.SharedEnums
     {
         Manual,
         RoundRobin,
-        AIAssisted
+        AIAssisted,
+        Escalation
     }
 }

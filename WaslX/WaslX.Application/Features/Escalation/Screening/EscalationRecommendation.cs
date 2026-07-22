@@ -19,5 +19,10 @@ namespace WaslX.Application.Features.Escalation.Screening
         public DateTime? ConfirmedAtUtc { get; init; }
         public DateTime? AssignedAtUtc { get; init; }
         public DateTime CreatedAtUtc { get; init; }
+        public string? Priority { get; init; }
+        public string? Topic { get; init; }
+        public string? Sentiment { get; init; }
+        public IReadOnlyList<EscalationCandidateSnapshotDto> Candidates { get; init; }
+            = Array.Empty<EscalationCandidateSnapshotDto>();
     }
 }

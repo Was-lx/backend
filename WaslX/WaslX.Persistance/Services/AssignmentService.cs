@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WaslX.Application.Abstractions.Assignments;
 using WaslX.Application.Abstractions.Audit;
 using WaslX.Application.Abstractions.Notifications;
+using WaslX.Application.Abstractions.Performance;
 using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Features.Assignments.Dtos;
 using WaslX.Domain.Entities;
@@ -12,7 +13,7 @@ using WaslX.Persistance.Data;
 
 namespace WaslX.Persistance.Services;
 
-internal sealed class AssignmentService(ApplicationDbContext db, IInboxRealtimeNotifier notifier, INotificationService notifications, IAuditService audit) : IAssignmentService
+internal sealed class AssignmentService(ApplicationDbContext db, IInboxRealtimeNotifier notifier, INotificationService notifications, IAuditService audit, IAgentPerformanceUpdateService performanceUpdate) : IAssignmentService
 {
     public Task<Result> AssignAsync(int? tenantId, int conversationId, string targetAppUserId, string byAppUserId, string? reason, CancellationToken cancellationToken = default) =>
         AssignInternalAsync(tenantId, conversationId, targetAppUserId, byAppUserId, reason, isReassign: false, cancellationToken);
@@ -35,6 +36,8 @@ internal sealed class AssignmentService(ApplicationDbContext db, IInboxRealtimeN
         if (target is null)
             return Result.Failure(AppErrors.UserContextNotResolved);
 
+        var previousOwnerId = conversation.AssignedUserId;
+
         conversation.AssignedUserId = target.Value.Id;
         // Advance to Assigned only when the lifecycle state machine permits it (e.g. New/Reopened/InProgress/Pending);
         // never force a Resolved conversation into Assigned via an assignment.
@@ -53,6 +56,12 @@ internal sealed class AssignmentService(ApplicationDbContext db, IInboxRealtimeN
         });
 
         await db.SaveChangesAsync(cancellationToken);
+
+        if (previousOwnerId is { } prevId && prevId != target.Value.Id)
+            await performanceUpdate.RecordConversationClosedAsync(prevId, resolved: false, cancellationToken);
+
+        if (conversation.Status != ConversationStatus.Resolved)
+            await performanceUpdate.RecordConversationAssignedAsync(target.Value.Id, cancellationToken);
 
         await notifier.ConversationChangedAsync(tid, new ConversationChangedPayload(
             conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);

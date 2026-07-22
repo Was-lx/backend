@@ -32,6 +32,7 @@ namespace WaslX.Persistance.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<MessageClassification> MessageClassifications { get; set; }
         public DbSet<Escalation> Escalations { get; set; }
+        public DbSet<EscalationCandidateSnapshot> EscalationCandidateSnapshots { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<PlatformAuditLog> PlatformAuditLogs { get; set; }

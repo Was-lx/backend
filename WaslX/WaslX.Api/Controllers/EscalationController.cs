@@ -84,4 +84,35 @@ public class EscalationController(
 
         return (await assignmentService.OverrideAsync(tenantId.Value, userId.Value, escalationId, request.AssigneeId, request.Reason, cancellationToken)).ToActionResult();
     }
+
+    // ── Reject ──
+
+    [HttpPost("escalations/{escalationId:int}/reject")]
+    [Authorize(Roles = "Admin,Manager")]
+    public async Task<IActionResult> Reject(
+        int escalationId,
+        [FromBody] RejectEscalationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = User.GetTenantId();
+        var userId = User.GetDomainUserId();
+        if (tenantId is null || userId is null)
+            return Unauthorized();
+
+        return (await assignmentService.RejectAsync(tenantId.Value, userId.Value, escalationId, request.Reason, cancellationToken)).ToActionResult();
+    }
+
+    // ── Candidates ──
+
+    [HttpGet("escalations/{escalationId:int}/candidates")]
+    public async Task<IActionResult> GetCandidates(
+        int escalationId,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = User.GetTenantId();
+        if (tenantId is null)
+            return Unauthorized();
+
+        return (await assignmentService.GetCandidatesAsync(tenantId.Value, escalationId, cancellationToken)).ToActionResult();
+    }
 }

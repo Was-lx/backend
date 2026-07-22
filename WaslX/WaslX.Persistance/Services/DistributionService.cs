@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WaslX.Application.Abstractions.Distribution;
+using WaslX.Application.Abstractions.Performance;
 using WaslX.Application.Abstractions.Realtime;
 using WaslX.Domain.Entities;
 using WaslX.Domain.SharedEnums;
@@ -14,7 +15,7 @@ namespace WaslX.Persistance.Services;
 /// non-Resolved conversations, so assigning to the least loaded gives fair round-robin plus backlog spread
 /// automatically. Every eligibility query is tenant-scoped and excludes disabled (Identity IsDisabled) agents.
 /// </summary>
-internal sealed class DistributionService(ApplicationDbContext db, IInboxRealtimeNotifier notifier) : IDistributionService
+internal sealed class DistributionService(ApplicationDbContext db, IInboxRealtimeNotifier notifier, IAgentPerformanceUpdateService performanceUpdate) : IDistributionService
 {
     public async Task<int?> AutoAssignAsync(int conversationId, CancellationToken cancellationToken = default)
     {
@@ -72,9 +73,11 @@ internal sealed class DistributionService(ApplicationDbContext db, IInboxRealtim
         }
     }
 
-    /// <summary>Applies an assignment to a tracked conversation: sets owner, advances a fresh status, records the Assignment, notifies, saves.</summary>
+    /// <summary>Applies an assignment to a tracked conversation: sets owner, advances a fresh status, records the Assignment, notifies, saves, and syncs ActiveChats.</summary>
     private async Task AssignAsync(Conversation conversation, int userId, string reason, CancellationToken cancellationToken)
     {
+        var previousOwnerId = conversation.AssignedUserId;
+
         conversation.AssignedUserId = userId;
         // Advance to Assigned only from a fresh state; never downgrade an in-flight conversation.
         if (conversation.Status is ConversationStatus.New or ConversationStatus.Reopened)
@@ -91,6 +94,12 @@ internal sealed class DistributionService(ApplicationDbContext db, IInboxRealtim
         });
 
         await db.SaveChangesAsync(cancellationToken);
+
+        if (previousOwnerId is { } prevId && prevId != userId)
+            await performanceUpdate.RecordConversationClosedAsync(prevId, resolved: false, cancellationToken);
+
+        if (conversation.Status != ConversationStatus.Resolved)
+            await performanceUpdate.RecordConversationAssignedAsync(userId, cancellationToken);
 
         await notifier.ConversationChangedAsync(conversation.TenantId, new ConversationChangedPayload(
             conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);

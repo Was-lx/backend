@@ -49,7 +49,14 @@ public record ConversationDetailResponse(
     int? CurrentStageId,
     string? CurrentStageName,
     bool HandledByAi = false,
-    WaslX.Domain.SharedEnums.AiConversationMode AiMode = WaslX.Domain.SharedEnums.AiConversationMode.Active);
+    WaslX.Domain.SharedEnums.AiConversationMode AiMode = WaslX.Domain.SharedEnums.AiConversationMode.Active,
+    bool IsEscalated = false,
+    string? EscalationReason = null,
+    string? EscalationPriority = null,
+    string? EscalationTopic = null,
+    string? EscalationSentiment = null,
+    decimal? EscalationScore = null,
+    int? EscalationId = null);
 
 /// <summary>Request to change the conversation's AI mode.</summary>
 public record ChangeAiModeRequest(WaslX.Domain.SharedEnums.AiConversationMode Mode);

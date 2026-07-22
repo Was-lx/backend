@@ -68,6 +68,17 @@ namespace WaslX.Persistance.Data.Configurations
                 .WithMany()
                 .HasForeignKey(e => e.AssignedToId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(e => e.Topic)
+                .HasMaxLength(100);
+
+            builder.Property(e => e.SuggestedScore)
+                .HasPrecision(10, 4);
+
+            builder.HasMany(e => e.CandidateSnapshots)
+                .WithOne(s => s.Escalation)
+                .HasForeignKey(s => s.EscalationId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

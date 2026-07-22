@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WaslX.Application.Abstractions.ConversationStages;
+using WaslX.Application.Abstractions.Performance;
 using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Features.ConversationStages.Dtos;
 using WaslX.Domain.Entities;
@@ -15,7 +16,7 @@ namespace WaslX.Persistance.Services;
 /// act on any), mirroring <see cref="ConversationService"/>'s access check. The "changed by" user recorded
 /// in history is the domain user id (from the JWT <c>duid</c> claim) with an email fallback.
 /// </summary>
-internal sealed class ConversationStageService(ApplicationDbContext db, IInboxRealtimeNotifier notifier) : IConversationStageService
+internal sealed class ConversationStageService(ApplicationDbContext db, IInboxRealtimeNotifier notifier, IAgentPerformanceUpdateService performanceUpdate) : IConversationStageService
 {
     public async Task<Result> RouteToGroupAsync(
         int? tenantId, int conversationId, int groupId, int byUserId, string? byUserEmail, bool isPrivileged, CancellationToken cancellationToken = default)
@@ -116,6 +117,8 @@ internal sealed class ConversationStageService(ApplicationDbContext db, IInboxRe
         // Cross-team handoff: move to the target team's first stage and drop the current owner so the
         // receiving team picks it up via their own queue / distribution. The full message + note history
         // stays intact because it's the same conversation row.
+        var previousOwnerId = conversation.AssignedUserId;
+
         conversation.GroupId = targetGroupId;
         conversation.CurrentStageId = firstStageId;
         conversation.AssignedUserId = null;
@@ -126,6 +129,9 @@ internal sealed class ConversationStageService(ApplicationDbContext db, IInboxRe
 
         WriteStageHistory(conversation.Id, firstStageId, changedBy.Value);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (previousOwnerId is { } prevId)
+            await performanceUpdate.RecordConversationClosedAsync(prevId, resolved: false, cancellationToken);
 
         await NotifyAsync(tid, conversation, cancellationToken);
         return Result.Success();

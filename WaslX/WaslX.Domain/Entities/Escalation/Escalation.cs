@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using WaslX.Domain.Common;
 using WaslX.Domain.SharedEnums;
 
@@ -30,6 +31,11 @@ namespace WaslX.Domain.Entities
         public DateTime? NotifiedAtUtc { get; set; }
         public bool CreatedBySystem { get; set; }
 
+        // US-4.5 Scoring persistence
+        public string Topic { get; set; } = "general";
+        public decimal? SuggestedScore { get; set; }
+        public DateTime? RecommendationGeneratedAtUtc { get; set; }
+
         public Tenant Tenant { get; set; } = null!;
         public Conversation Conversation { get; set; } = null!;
         public User? AssignedUser { get; set; }
@@ -38,5 +44,6 @@ namespace WaslX.Domain.Entities
         public User? AssignedTo { get; set; }
         public MessageClassification? MessageClassification { get; set; }
         public Message? Message { get; set; }
+        public ICollection<EscalationCandidateSnapshot> CandidateSnapshots { get; set; } = new List<EscalationCandidateSnapshot>();
     }
 }

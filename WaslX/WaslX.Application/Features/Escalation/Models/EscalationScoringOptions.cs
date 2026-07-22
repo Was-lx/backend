@@ -7,7 +7,7 @@ namespace WaslX.Application.Features.Escalation.Models
         public decimal PerformanceWeight { get; set; } = 0.5m;
         public decimal ResponseSpeedWeight { get; set; } = 0.25m;
         public decimal WorkloadWeight { get; set; } = 0.25m;
-        public int WorkloadTolerance { get; set; } = 2;
+        public int WorkloadLimit { get; set; } = 5;
         public int AvgResponseTimeTargetSeconds { get; set; } = 120;
     }
 }

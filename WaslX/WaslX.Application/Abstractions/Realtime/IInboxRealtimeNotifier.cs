@@ -56,6 +56,9 @@ public interface IInboxRealtimeNotifier
 
     /// <summary>A conversation's AI mode (Active/Paused/etc.) changed.</summary>
     Task ConversationAiModeChangedAsync(int tenantId, ConversationAiModeChangedPayload payload, CancellationToken cancellationToken = default);
+
+    /// <summary>An escalation was rejected/cancelled by a Manager/Admin.</summary>
+    Task EscalationRejectedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Realtime payload for AI takeover events.</summary>

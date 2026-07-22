@@ -44,7 +44,8 @@ namespace WaslX.Application.Features.Escalation.Providers
                         UserId = userId,
                         PerformanceScore = CalculatePerformanceScore(perf),
                         ResponseSpeedScore = CalculateResponseSpeedScore(perf),
-                        ResolutionScore = perf.ResolutionRate
+                        ResolutionScore = perf.ResolutionRate,
+                        ActiveChats = perf.ActiveChats
                     };
                 }
                 else
@@ -54,7 +55,8 @@ namespace WaslX.Application.Features.Escalation.Providers
                         UserId = userId,
                         PerformanceScore = 0.3m,
                         ResponseSpeedScore = 0.5m,
-                        ResolutionScore = 0m
+                        ResolutionScore = 0m,
+                        ActiveChats = 0
                     };
                 }
             }

@@ -33,58 +33,58 @@ namespace WaslX.Application.Features.Escalation.Services
                 var userRepo = unitOfWork.GetRepository<User, int>();
                 var escalationRepo = unitOfWork.GetRepository<Domain.Entities.Escalation, int>();
 
-                // 1. Load eligible Agents
-                var spec = new EligibleAgentsSpecification(input.TenantId);
-                var candidates = await userRepo.GetAllWithSpecAsync(spec, false);
+                // 1. Load the conversation to find the currently assigned agent
+                var conversationRepo = unitOfWork.GetRepository<Conversation, int>();
+                var conversation = await conversationRepo.GetByIdAsync(input.ConversationId, cancellationToken);
+                int? assignedAgentId = conversation?.AssignedUserId;
 
-                if (!candidates.Any())
+                // 2. Load eligible Agents
+                var spec = new EligibleAgentsSpecification(input.TenantId);
+                var candidates = (await userRepo.GetAllWithSpecAsync(spec, false)).ToList();
+
+                // 3. Exclude the currently assigned agent for THIS conversation (business rule)
+                if (assignedAgentId.HasValue)
                 {
-                    logger.LogWarning("No eligible agents found for escalation {EscalationId} in tenant {TenantId}.", input.EscalationId, input.TenantId);
-                    return await RecordNoTargetAsync(input, escalationRepo, "No active agents available", cancellationToken);
+                    candidates = candidates.Where(c => c.Id != assignedAgentId.Value).ToList();
+                }
+
+                if (candidates.Count == 0)
+                {
+                    logger.LogWarning("No alternative eligible agents for escalation {EscalationId} (assigned agent {AssignedAgentId} excluded).", input.EscalationId, assignedAgentId);
+                    return await RecordNoTargetAsync(input, escalationRepo, cancellationToken);
                 }
 
                 var candidateIds = candidates.Select(c => c.Id).ToList();
 
-                // 2. Load performance metrics
+                // 2. Load performance metrics (includes ActiveChats from AgentPerformance table)
                 var performances = await performanceProvider.GetManyAsync(candidateIds);
 
-                // 3. Calculate workload dynamically
-                // We calculate open escalations currently assigned to these agents
-                var openEscalationsSpec = new OpenEscalationsSpecification(input.TenantId);
-                var openEscalations = await escalationRepo.GetAllWithSpecAsync(openEscalationsSpec, false);
-                
-                var workloadMap = openEscalations
-                    .Where(e => e.AssignedUserId.HasValue)
-                    .GroupBy(e => e.AssignedUserId!.Value)
-                    .ToDictionary(g => g.Key, g => g.Count());
-
-                var candidateWorkloads = candidateIds.ToDictionary(id => id, id => new WorkloadSnapshot
+                // 3. Build workload map from AgentPerformance.ActiveChats (single source of truth)
+                var candidateWorkloads = candidateIds.ToDictionary(id => id, id =>
                 {
-                    UserId = id,
-                    OpenEscalations = workloadMap.TryGetValue(id, out var count) ? count : 0,
-                    ActiveConversations = 0 // Future: query active conversations
+                    var p = performances.TryGetValue(id, out var perf) ? perf : null;
+                    return p?.ActiveChats ?? 0;
                 });
 
-                // 4. Apply workload tolerance
-                var lowestWorkload = candidateWorkloads.Values.Min(w => w.OpenEscalations);
-                var maxAllowedWorkload = lowestWorkload + _options.WorkloadTolerance;
+                // 4. Apply relative workload filtering: eligible = ActiveChats <= (lowest + WorkloadLimit)
+                var lowestActiveChats = candidateWorkloads.Values.Min();
+                var maxAllowedWorkload = lowestActiveChats + _options.WorkloadLimit;
 
+                // 5. Build candidate scores (workload score computed only for eligible agents)
                 var eligibleCandidateScores = new List<EscalationCandidateScore>();
 
                 foreach (var candidate in candidates)
                 {
                     var p = performances.TryGetValue(candidate.Id, out var perf) ? perf : new AgentPerformanceSnapshot { UserId = candidate.Id };
-                    var w = candidateWorkloads[candidate.Id];
+                    var activeChats = candidateWorkloads[candidate.Id];
+                    bool isEligible = activeChats <= maxAllowedWorkload;
 
-                    bool isOverloaded = w.OpenEscalations > maxAllowedWorkload;
-
-                    // Workload score (lower is better, so we invert it relative to others if we normalize. 
-                    // To keep things simple 0-1, we can use 1 / (1 + openEscalations))
-                    decimal workloadScore = 1.0m / (1.0m + w.OpenEscalations);
-
-                    decimal totalScore = (p.PerformanceScore * _options.PerformanceWeight) +
-                                         (p.ResponseSpeedScore * _options.ResponseSpeedWeight) +
-                                         (workloadScore * _options.WorkloadWeight);
+                    decimal workloadScore = isEligible ? 1.0m / (1.0m + activeChats) : 0m;
+                    decimal totalScore = isEligible
+                        ? (p.PerformanceScore * _options.PerformanceWeight) +
+                          (p.ResponseSpeedScore * _options.ResponseSpeedWeight) +
+                          (workloadScore * _options.WorkloadWeight)
+                        : 0m;
 
                     eligibleCandidateScores.Add(new EscalationCandidateScore
                     {
@@ -94,27 +94,22 @@ namespace WaslX.Application.Features.Escalation.Services
                         ResponseSpeedScore = p.ResponseSpeedScore,
                         WorkloadScore = workloadScore,
                         TotalScore = totalScore,
-                        Status = isOverloaded ? "Overloaded" : "Eligible"
+                        Status = isEligible ? "Eligible" : "Overloaded"
                     });
                 }
 
-                // If all overloaded, fallback to least loaded
+                // 6. Select the best Agent (only from eligible candidates)
                 var availableCandidates = eligibleCandidateScores.Where(c => c.Status == "Eligible").ToList();
                 if (!availableCandidates.Any())
                 {
-                    logger.LogInformation("All candidates overloaded for escalation {EscalationId}. Falling back to least loaded.", input.EscalationId);
-                    // Find the one with highest workloadScore (which means lowest actual workload)
-                    var leastLoaded = eligibleCandidateScores.OrderByDescending(c => c.WorkloadScore).First();
-                    leastLoaded.Status = "Eligible (Fallback)";
-                    availableCandidates.Add(leastLoaded);
+                    logger.LogWarning("No eligible agents after workload filtering for escalation {EscalationId}.", input.EscalationId);
+                    return await RecordNoTargetAsync(input, escalationRepo, cancellationToken);
                 }
-
-                // 5. Select the best Agent
                 var bestCandidate = availableCandidates.OrderByDescending(c => c.TotalScore).First();
 
                 var reason = $"Selected {bestCandidate.UserName} based on performance and workload.";
 
-                // 6. Store the recommendation
+                // 7. Store the recommendation
                 var result = new EscalationScoringResult
                 {
                     EscalationId = input.EscalationId,
@@ -125,16 +120,13 @@ namespace WaslX.Application.Features.Escalation.Services
                     Candidates = eligibleCandidateScores
                 };
 
-                await SaveRecommendationAsync(escalationRepo, input.EscalationId, bestCandidate.UserId, reason, cancellationToken);
+                await SaveRecommendationAsync(escalationRepo, input, bestCandidate.UserId, reason, bestCandidate.TotalScore, eligibleCandidateScores, cancellationToken);
                 await unitOfWork.CompleteAsync();
 
-                // 7. Connect to US-4.5 mode handling (recommend vs autoAssign)
+                // 8. Connect to US-4.5 mode handling (recommend vs autoAssign)
                 var screeningResult = await assignmentService.HandleScoringResultAsync(input.TenantId, input.EscalationId, cancellationToken);
 
-                // 8. Emit SignalR event (always send scoring result for recommendation panels)
-                // For recommend mode: `HandleScoringResultAsync` already emits events.
-                // For autoAssign mode: ownership transfer events are emitted by the assignment service.
-                // Only manually emit if in recommend mode (assignment service handles autoAssign events).
+                // 9. Emit SignalR event (always send scoring result for recommendation panels)
                 if (screeningResult.IsSuccess && screeningResult.Value.Mode == "Recommend")
                 {
                     await realtimeNotifier.EscalationRecommendationUpdatedAsync(input.TenantId, result, cancellationToken);
@@ -152,9 +144,9 @@ namespace WaslX.Application.Features.Escalation.Services
         private async Task<EscalationScoringResult> RecordNoTargetAsync(
             EscalationScoringInput input, 
             IGenericRepository<Domain.Entities.Escalation, int> escalationRepo, 
-            string reason, 
             CancellationToken cancellationToken)
         {
+            var reason = "No eligible agents available";
             var result = new EscalationScoringResult
             {
                 EscalationId = input.EscalationId,
@@ -165,7 +157,7 @@ namespace WaslX.Application.Features.Escalation.Services
                 Candidates = Array.Empty<EscalationCandidateScore>()
             };
 
-            await SaveRecommendationAsync(escalationRepo, input.EscalationId, null, reason, cancellationToken);
+            await SaveRecommendationAsync(escalationRepo, input, null, reason, 0, new List<EscalationCandidateScore>(), cancellationToken);
             await unitOfWork.CompleteAsync();
 
             await realtimeNotifier.EscalationRecommendationUpdatedAsync(input.TenantId, result, cancellationToken);
@@ -174,18 +166,49 @@ namespace WaslX.Application.Features.Escalation.Services
         }
 
         private async Task SaveRecommendationAsync(
-            IGenericRepository<Domain.Entities.Escalation, int> escalationRepo, 
-            int escalationId, 
-            int? assigneeId, 
-            string reason, 
+            IGenericRepository<Domain.Entities.Escalation, int> escalationRepo,
+            EscalationScoringInput input,
+            int? assigneeId,
+            string reason,
+            decimal score,
+            List<EscalationCandidateScore> candidates,
             CancellationToken cancellationToken)
         {
-            var escalation = await escalationRepo.GetByIdAsync(escalationId, cancellationToken);
+            var escalation = await escalationRepo.GetByIdAsync(input.EscalationId, cancellationToken);
             if (escalation != null)
             {
                 escalation.SuggestedAssigneeId = assigneeId;
                 escalation.SuggestedReason = reason;
+                escalation.SuggestedScore = score;
+                escalation.Topic = input.Topic;
+                escalation.RecommendationGeneratedAtUtc = DateTime.UtcNow;
                 escalationRepo.Update(escalation);
+
+                var snapshotRepo = unitOfWork.GetRepository<EscalationCandidateSnapshot, int>();
+                var ranked = candidates
+                    .OrderByDescending(c => c.TotalScore)
+                    .ThenBy(c => c.Status == "Overloaded" ? 1 : 0)
+                    .ToList();
+
+                for (int i = 0; i < ranked.Count; i++)
+                {
+                    var c = ranked[i];
+                    await snapshotRepo.AddAsync(new EscalationCandidateSnapshot
+                    {
+                        EscalationId = input.EscalationId,
+                        AgentId = c.UserId,
+                        AgentName = c.UserName,
+                        OverallScore = c.TotalScore,
+                        PerformanceScore = c.PerformanceScore,
+                        ResponseSpeedScore = c.ResponseSpeedScore,
+                        WorkloadScore = c.WorkloadScore,
+                        ActiveChats = 0,
+                        RankingOrder = i + 1,
+                        Status = c.Status,
+                        Reason = i == 0 ? reason : null,
+                        CreatedAtUtc = DateTime.UtcNow
+                    }, cancellationToken);
+                }
             }
         }
 
@@ -195,14 +218,6 @@ namespace WaslX.Application.Features.Escalation.Services
                 : base(u => u.TenantId == tenantId && u.Role.Name == "Agent" && u.Status == "Active" && u.IsOnline && !u.IsOnBreak)
             {
                 AddInclude(u => u.Role);
-            }
-        }
-
-        private class OpenEscalationsSpecification : Specification<Domain.Entities.Escalation, int>
-        {
-            public OpenEscalationsSpecification(int tenantId)
-                : base(e => e.TenantId == tenantId && e.Status == EscalationStatus.Open)
-            {
             }
         }
     }
