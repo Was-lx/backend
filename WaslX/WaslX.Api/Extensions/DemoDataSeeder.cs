@@ -33,6 +33,7 @@ public static class DemoDataSeeder
         await SeedPlansAsync(db);
         await SeedDemoWorkspaceAsync(db, userManager, permissions, domainUsers, app.Logger);
         await HealTenantOwnersAsync(db, userManager, domainUsers, app.Logger);
+        await SeedEscalationTestAgentsAsync(db, userManager, app.Logger);
     }
 
     /// <summary>The public pricing plans. Sign-up can't work without at least one plan.</summary>
@@ -196,5 +197,112 @@ public static class DemoDataSeeder
                 logger.LogInformation("Owner backfill: created + marked owner {email} for tenant {tenantId}", email, tenantId);
             }
         }
+    }
+
+    // Tenant 2 ("the pro english") is the live test workspace. These are 4 agents + 1 manager
+    // with differentiated AgentPerformance data so the Escalation auto-assignment feature has
+    // real, distinguishable candidates to score end-to-end.
+    private const int EscalationTestTenantId = 2;
+    private const string EscalationTestAgentPassword = "Agent@123";
+    private const string EscalationTestManagerPassword = "Manager@123";
+
+    private static readonly (string Email, string Name, int ChatsHandled, decimal AvgResponseTime, decimal ResolutionRate, int ActiveChats, int ResolvedChats)[] EscalationTestAgents =
+    [
+        ("agent.top@test.waslx.com", "Sara Ahmed", 85, 45m, 0.92m, 2, 78),       // top performer: fast + high resolution
+        ("agent.good@test.waslx.com", "Omar Khaled", 60, 90m, 0.75m, 3, 45),     // good, within response target
+        ("agent.average@test.waslx.com", "Mona Adel", 30, 150m, 0.55m, 4, 17),   // average, exceeds 120s target -> 0 response score
+        ("agent.weak@test.waslx.com", "Youssef Samir", 8, 200m, 0.35m, 1, 3),    // weak/new, low chats + slow
+    ];
+
+    private const string EscalationTestManagerEmail = "manager.test@test.waslx.com";
+    private const string EscalationTestManagerName = "Laila Hassan";
+
+    /// <summary>One-off, idempotent seed of 4 agents + 1 manager (with performance data) in the test tenant.</summary>
+    private static async Task SeedEscalationTestAgentsAsync(ApplicationDbContext db, UserManager<ApplicationUser> userManager, ILogger logger)
+    {
+        if (await userManager.FindByEmailAsync(EscalationTestAgents[0].Email) is not null)
+            return; // already seeded
+
+        var agentRoleId = await GetOrCreateDomainRoleIdAsync(db, DefaultRoles.Agent);
+        var managerRoleId = await GetOrCreateDomainRoleIdAsync(db, DefaultRoles.Manager);
+
+        foreach (var a in EscalationTestAgents)
+        {
+            var domainUserId = await CreateEscalationTestUserAsync(
+                db, userManager, logger, a.Email, a.Name, EscalationTestAgentPassword, DefaultRoles.Agent, agentRoleId);
+            if (domainUserId is null)
+                continue;
+
+            db.Set<AgentPerformance>().Add(new AgentPerformance
+            {
+                UserId = domainUserId.Value,
+                ChatsHandled = a.ChatsHandled,
+                AvgResponseTime = a.AvgResponseTime,
+                ResolutionRate = a.ResolutionRate,
+                ActiveChats = a.ActiveChats,
+                ResolvedChats = a.ResolvedChats,
+                LastUpdated = DateTime.UtcNow,
+            });
+        }
+
+        await CreateEscalationTestUserAsync(
+            db, userManager, logger, EscalationTestManagerEmail, EscalationTestManagerName, EscalationTestManagerPassword, DefaultRoles.Manager, managerRoleId);
+
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Seeded escalation test data: 4 agents + 1 manager in tenant {tenantId} ({email} / {password})",
+            EscalationTestTenantId, EscalationTestAgents[0].Email, EscalationTestAgentPassword);
+    }
+
+    private static async Task<int?> CreateEscalationTestUserAsync(
+        ApplicationDbContext db, UserManager<ApplicationUser> userManager, ILogger logger,
+        string email, string name, string password, string identityRole, int domainRoleId)
+    {
+        var identityUser = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            FullName = name,
+            TenantId = EscalationTestTenantId,
+            EmailConfirmed = true,
+        };
+
+        var result = await userManager.CreateAsync(identityUser, password);
+        if (!result.Succeeded)
+        {
+            logger.LogWarning("Escalation test seed: failed to create {email}: {errors}",
+                email, string.Join(", ", result.Errors.Select(e => e.Description)));
+            return null;
+        }
+
+        await userManager.AddToRoleAsync(identityUser, identityRole);
+
+        var domainUser = new User
+        {
+            TenantId = EscalationTestTenantId,
+            RoleId = domainRoleId,
+            Name = name,
+            Email = email,
+            PasswordHash = string.Empty,
+            Status = "Active",
+            IsOnline = true,
+            IsOnBreak = false,
+        };
+        db.Users.Add(domainUser);
+        await db.SaveChangesAsync();
+
+        return domainUser.Id;
+    }
+
+    private static async Task<int> GetOrCreateDomainRoleIdAsync(ApplicationDbContext db, string name)
+    {
+        var existing = await db.Set<Role>().Where(r => r.Name == name).Select(r => (int?)r.Id).FirstOrDefaultAsync();
+        if (existing is not null)
+            return existing.Value;
+
+        var role = new Role { Name = name, Description = name };
+        db.Set<Role>().Add(role);
+        await db.SaveChangesAsync();
+        return role.Id;
     }
 }
