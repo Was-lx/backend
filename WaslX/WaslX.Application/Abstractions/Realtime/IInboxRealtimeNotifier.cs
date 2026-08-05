@@ -34,7 +34,7 @@ public interface IInboxRealtimeNotifier
     Task MessageClassificationUpdatedAsync(int tenantId, MessageClassificationPayload payload, CancellationToken cancellationToken = default);
 
     /// <summary>An escalation's suggested-assignee recommendation was computed or recomputed.</summary>
-    Task EscalationRecommendationUpdatedAsync(int tenantId, EscalationScoringResult result, CancellationToken cancellationToken = default);
+    Task EscalationRecommendationUpdatedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default);
 
     /// <summary>A Manager/Admin confirmed a recommended escalation assignment.</summary>
     Task EscalationAssignmentConfirmedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default);

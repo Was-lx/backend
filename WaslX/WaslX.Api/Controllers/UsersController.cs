@@ -17,6 +17,7 @@ namespace WaslX.Api.Controllers;
 public class UsersController(ISender sender) : ControllerBase
 {
     [HttpGet]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
     public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
     {
         // SuperAdmin (no tenant) sees all users; tenant admins see only their tenant.

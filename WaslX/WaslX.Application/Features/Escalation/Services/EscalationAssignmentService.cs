@@ -543,8 +543,8 @@ namespace WaslX.Application.Features.Escalation.Services
                 SuggestedAssigneeName = escalation.SuggestedAssignee?.Name ?? assigneeName ?? string.Empty,
                 Reason = escalation.SuggestedReason,
                 Score = escalation.SuggestedScore,
-                Mode = (escalation.ModeAtDecision ?? EscalationMode.Recommend).ToString(),
-                Status = escalation.Status.ToString(),
+                Mode = ToCamelCase((escalation.ModeAtDecision ?? EscalationMode.Recommend).ToString()),
+                Status = ToCamelCase(escalation.Status.ToString()),
                 AssignedToId = escalation.AssignedToId ?? conversation.AssignedUserId,
                 AssignedToName = assigneeName,
                 PreviousOwnerId = previousOwnerId,
@@ -560,6 +560,12 @@ namespace WaslX.Application.Features.Escalation.Services
                 Candidates = snapshots
             };
         }
+
+        // The frontend's EscalationStatus/EscalationMode TS types are camelCase ("recommended",
+        // "autoAssign"), but the domain enums here are PascalCase ("Recommended", "AutoAssign") —
+        // lowercase just the first letter so the two sides agree on the wire.
+        private static string ToCamelCase(string value) =>
+            string.IsNullOrEmpty(value) ? value : char.ToLowerInvariant(value[0]) + value[1..];
 
         #endregion
 

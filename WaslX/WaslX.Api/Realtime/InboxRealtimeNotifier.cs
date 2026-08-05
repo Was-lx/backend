@@ -35,7 +35,7 @@ internal sealed class InboxRealtimeNotifier(IHubContext<InboxHub> hub) : IInboxR
     public Task MessageClassificationUpdatedAsync(int tenantId, MessageClassificationPayload payload, CancellationToken cancellationToken = default) =>
         hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("MessageClassificationUpdated", payload, cancellationToken);
 
-    public Task EscalationRecommendationUpdatedAsync(int tenantId, EscalationScoringResult result, CancellationToken cancellationToken = default) =>
+    public Task EscalationRecommendationUpdatedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default) =>
         hub.Clients.Group(InboxHub.TenantGroup(tenantId)).SendAsync("EscalationRecommendationUpdated", result, cancellationToken);
 
     public Task EscalationAssignmentConfirmedAsync(int tenantId, EscalationRecommendation result, CancellationToken cancellationToken = default) =>

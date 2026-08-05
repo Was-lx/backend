@@ -126,10 +126,11 @@ namespace WaslX.Application.Features.Escalation.Services
                 // 8. Connect to US-4.5 mode handling (recommend vs autoAssign)
                 var screeningResult = await assignmentService.HandleScoringResultAsync(input.TenantId, input.EscalationId, cancellationToken);
 
-                // 9. Emit SignalR event (always send scoring result for recommendation panels)
+                // 9. Emit SignalR event (send the full recommendation, incl. ConversationId, for the
+                // inbox banner — EscalationScoringResult carries no ConversationId and can't be used here).
                 if (screeningResult.IsSuccess && screeningResult.Value.Mode == "Recommend")
                 {
-                    await realtimeNotifier.EscalationRecommendationUpdatedAsync(input.TenantId, result, cancellationToken);
+                    await realtimeNotifier.EscalationRecommendationUpdatedAsync(input.TenantId, screeningResult.Value, cancellationToken);
                 }
 
                 return result;
@@ -160,7 +161,13 @@ namespace WaslX.Application.Features.Escalation.Services
             await SaveRecommendationAsync(escalationRepo, input, null, reason, 0, new List<EscalationCandidateScore>(), cancellationToken);
             await unitOfWork.CompleteAsync();
 
-            await realtimeNotifier.EscalationRecommendationUpdatedAsync(input.TenantId, result, cancellationToken);
+            // No candidate scores here, so route through the assignment service to get the full
+            // EscalationRecommendation (incl. ConversationId) the inbox banner needs.
+            var recommendation = await assignmentService.GetRecommendationAsync(input.TenantId, input.ConversationId, cancellationToken);
+            if (recommendation.IsSuccess)
+            {
+                await realtimeNotifier.EscalationRecommendationUpdatedAsync(input.TenantId, recommendation.Value, cancellationToken);
+            }
 
             return result;
         }
