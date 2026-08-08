@@ -1,4 +1,6 @@
-﻿namespace WaslX.Infrastructure.Email;
+﻿using System.Net;
+
+namespace WaslX.Infrastructure.Email;
 
 public static class EmailBodyBuilder
 {
@@ -9,8 +11,11 @@ public static class EmailBodyBuilder
         var body = streamReader.ReadToEnd();
         streamReader.Close();
 
+        // Values are substituted into raw HTML, so anything user-controlled (e.g. FullName)
+        // must be HTML-encoded first — otherwise a name like "<img src=x onerror=...>" gets
+        // injected verbatim into the email.
         foreach (var item in templateModel)
-            body = body.Replace(item.Key, item.Value);
+            body = body.Replace(item.Key, WebUtility.HtmlEncode(item.Value));
 
         return body;
     }
