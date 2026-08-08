@@ -71,5 +71,6 @@ namespace WaslX.Application.Features.Escalation.Services
         internal static readonly Error NotRecommended = new Error("Escalation.NotRecommended", "Escalation is not in recommended status.", 400);
         internal static readonly Error AlreadyCancelled = new Error("Escalation.AlreadyCancelled", "Escalation has already been cancelled.", 400);
         internal static readonly Error CannotReject = new Error("Escalation.CannotReject", "Escalation cannot be rejected in its current status.", 400);
+        internal static readonly Error InvalidAssignee = new Error("Escalation.InvalidAssignee", "The specified assignee does not belong to this workspace.", 400);
     }
 }
