@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WaslX.Api.Contracts;
 using WaslX.Api.Extensions;
 using WaslX.Application.Features.Auth.ChangePassword;
@@ -20,6 +21,7 @@ namespace WaslX.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("auth")]
 public class AuthController(ISender sender) : ControllerBase
 {
     [AllowAnonymous]

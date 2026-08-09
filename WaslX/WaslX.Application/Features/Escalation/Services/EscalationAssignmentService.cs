@@ -189,31 +189,18 @@ namespace WaslX.Application.Features.Escalation.Services
                 return Result.Failure<EscalationRecommendation>(AppErrors.NoTarget);
             }
 
-            var settingsRepo = unitOfWork.GetRepository<TenantEscalationSettings, int>();
-            var settings = await settingsRepo.GetWithSpecAsync(new TenantEscalationSettingsSpec(tenantId));
-            var mode = settings?.Mode ?? EscalationMode.Recommend;
-
             var conversationRepo = unitOfWork.GetRepository<Conversation, int>();
             var conversation = await conversationRepo.GetByIdAsync(escalation.ConversationId, cancellationToken);
             if (conversation is null)
                 return Result.Failure<EscalationRecommendation>(AppErrors.NotFound);
 
             var previousOwnerId = conversation.AssignedUserId;
-            escalation.ModeAtDecision = mode;
+            // The "Recommend" mode (AI suggests, Manager/Admin confirms) has been removed — every
+            // escalation now transfers directly to the scored candidate and notifies the manager,
+            // instead of waiting on a human approval step. TenantEscalationSettings.Mode is no longer
+            // read here; ModeAtDecision is still recorded for historical/audit continuity.
+            escalation.ModeAtDecision = EscalationMode.AutoAssign;
 
-            if (mode == EscalationMode.Recommend)
-            {
-                escalation.Status = EscalationStatus.Recommended;
-                unitOfWork.GetRepository<Domain.Entities.Escalation, int>().Update(escalation);
-                await unitOfWork.CompleteAsync();
-
-                var result = BuildRecommendation(escalation, conversation, null, previousOwnerId);
-
-                logger.LogInformation("Escalation {EscalationId} set to recommended status, awaiting Manager/Admin confirm", escalationId);
-
-                return Result.Success(result);
-            }
-            else
             {
                 var assigneeId = escalation.SuggestedAssigneeId.Value;
 
@@ -578,9 +565,6 @@ namespace WaslX.Application.Features.Escalation.Services
         #endregion
 
         #region Specifications
-
-        private class TenantEscalationSettingsSpec(int tenantId)
-            : Domain.Specifications.Specification<TenantEscalationSettings, int>(s => s.TenantId == tenantId);
 
         private class ManagerAdminSpec : Specification<User, int>
         {
