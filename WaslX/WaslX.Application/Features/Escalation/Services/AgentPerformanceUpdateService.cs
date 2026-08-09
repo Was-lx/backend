@@ -137,10 +137,15 @@ namespace WaslX.Application.Features.Escalation.Services
             return perf;
         }
 
+        // `perf` is always already tracked here — either just AddAsync'd by GetOrCreateAsync (state
+        // Added), or fetched via GetWithSpecAsync's tracking query and then mutated in place (state
+        // becomes Modified automatically once a property changes). Calling repo.Update(perf) on top
+        // of that re-marks it as Modified explicitly, which EF Core rejects for a still-Added entity
+        // (its Id is a temporary in-memory value, not a real one yet) — that's exactly what threw
+        // "AgentPerformance.Id has a temporary value while attempting to change the entity's state to
+        // 'Modified'" on every auto-assigned escalation. SaveChanges alone is enough in both cases.
         private async Task SaveAsync(AgentPerformance perf, CancellationToken ct)
         {
-            var repo = _unitOfWork.GetRepository<AgentPerformance, int>();
-            repo.Update(perf);
             await _unitOfWork.CompleteAsync();
         }
     }

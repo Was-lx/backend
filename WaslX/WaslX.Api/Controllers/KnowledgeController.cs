@@ -2,6 +2,7 @@ using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WaslX.Api.Contracts;
 using WaslX.Api.Extensions;
 using WaslX.Application.Abstractions.Knowledge;
@@ -106,8 +107,12 @@ public class KnowledgeController(ISender sender, IBackgroundJobClient background
 
     // ── Search (M6) — also usable by Agents while helping a customer, not just Admin/Manager ──
 
+    // Rate-limited: unlike the webhook-triggered AI path, this on-demand endpoint has no per-tenant
+    // AI-usage quota gate of its own, so it's the one place a user could otherwise call the embedding/
+    // LLM providers as fast as they like.
     [HttpPost("search")]
     [Authorize(Roles = "Admin,Manager,Agent")]
+    [EnableRateLimiting("ai-costly")]
     public async Task<IActionResult> Search([FromBody] SearchKnowledgeRequest request, CancellationToken cancellationToken) =>
         (await sender.Send(new SearchKnowledgeQuery(User.GetTenantId(), request.Query, request.TopK, request.SourceType), cancellationToken)).ToActionResult();
 
@@ -115,6 +120,7 @@ public class KnowledgeController(ISender sender, IBackgroundJobClient background
 
     [HttpPost("ask")]
     [Authorize(Roles = "Admin,Manager,Agent")]
+    [EnableRateLimiting("ai-costly")]
     public async Task<IActionResult> Ask([FromBody] AskKnowledgeRequest request, CancellationToken cancellationToken) =>
         (await sender.Send(new AskKnowledgeQuery(User.GetTenantId(), request.Question), cancellationToken)).ToActionResult();
 

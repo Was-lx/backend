@@ -30,9 +30,16 @@ public static class DemoDataSeeder
         var permissions = sp.GetRequiredService<IPermissionService>();
         var domainUsers = sp.GetRequiredService<IDomainUserDirectory>();
 
-        await SeedPlansAsync(db);
+        await SeedPlansAsync(db); // real tenants need at least one plan to sign up — needed in every environment.
+        await HealTenantOwnersAsync(db, userManager, domainUsers, app.Logger); // real-tenant self-heal, not demo data.
+
+        // Everything below creates accounts with well-known, hardcoded passwords (DemoAdminPassword,
+        // EscalationTestAgentPassword, ...). Those must never exist outside local development —
+        // Production must not seed accounts an attacker could look up from source control.
+        if (!app.Environment.IsDevelopment())
+            return;
+
         await SeedDemoWorkspaceAsync(db, userManager, permissions, domainUsers, app.Logger);
-        await HealTenantOwnersAsync(db, userManager, domainUsers, app.Logger);
         await SeedEscalationTestAgentsAsync(db, userManager, app.Logger);
     }
 
@@ -83,13 +90,11 @@ public static class DemoDataSeeder
     private static async Task SeedDemoWorkspaceAsync(
         ApplicationDbContext db, UserManager<ApplicationUser> userManager, IPermissionService permissions, IDomainUserDirectory domainUsers, ILogger logger)
     {
-        // If the demo admin already exists, self-heal: force its password back to the
-        // documented one, unlock it, and confirm its email — so the demo login always
-        // works regardless of leftover state from prior testing.
+        // If the demo admin already exists, just unlock it and confirm its email — never force the
+        // password back to the documented default. A developer who intentionally changed it locally
+        // should not have that change silently reverted on the next restart.
         if (await userManager.FindByEmailAsync(DemoAdminEmail) is { } existing)
         {
-            var token = await userManager.GeneratePasswordResetTokenAsync(existing);
-            await userManager.ResetPasswordAsync(existing, token, DemoAdminPassword);
             await userManager.SetLockoutEndDateAsync(existing, null);
             await userManager.ResetAccessFailedCountAsync(existing);
             if (!existing.EmailConfirmed)
@@ -142,8 +147,9 @@ public static class DemoDataSeeder
         // The first Admin is the workspace owner (locked role, can't be disabled).
         await domainUsers.EnsureOwnerAsync(tenant.Id, DemoAdminEmail, admin.FullName);
 
-        logger.LogInformation("Seeded demo workspace '{tenant}' with Admin login {email} / {password}",
-            DemoTenantName, DemoAdminEmail, DemoAdminPassword);
+        // Password intentionally omitted from the log — it's a well-known dev-only constant
+        // (DemoAdminPassword), no reason to also put it in the log files.
+        logger.LogInformation("Seeded demo workspace '{tenant}' with Admin login {email}", DemoTenantName, DemoAdminEmail);
     }
 
     /// <summary>
@@ -250,8 +256,7 @@ public static class DemoDataSeeder
 
         await db.SaveChangesAsync();
 
-        logger.LogInformation("Seeded escalation test data: 4 agents + 1 manager in tenant {tenantId} ({email} / {password})",
-            EscalationTestTenantId, EscalationTestAgents[0].Email, EscalationTestAgentPassword);
+        logger.LogInformation("Seeded escalation test data: 4 agents + 1 manager in tenant {tenantId}", EscalationTestTenantId);
     }
 
     private static async Task<int?> CreateEscalationTestUserAsync(

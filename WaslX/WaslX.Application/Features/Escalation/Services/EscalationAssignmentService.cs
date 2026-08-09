@@ -50,6 +50,13 @@ namespace WaslX.Application.Features.Escalation.Services
             if (conversation is null)
                 return Result.Failure<EscalationRecommendation>(AppErrors.NotFound);
 
+            // assigneeId is client-supplied — verify it names a user in the caller's own tenant
+            // before writing it anywhere, or a cross-tenant assignment/enumeration is possible.
+            var userRepo = unitOfWork.GetRepository<User, int>();
+            var assignee = await userRepo.GetByIdAsync(assigneeId, cancellationToken);
+            if (assignee is null || assignee.TenantId != tenantId)
+                return Result.Failure<EscalationRecommendation>(AppErrors.InvalidAssignee);
+
             var previousOwnerId = conversation.AssignedUserId;
 
             conversation.AssignedUserId = assigneeId;
@@ -62,9 +69,6 @@ namespace WaslX.Application.Features.Escalation.Services
             escalation.AssignedAtUtc = DateTime.UtcNow;
             escalation.ModeAtDecision = EscalationMode.Recommend;
             unitOfWork.GetRepository<Domain.Entities.Escalation, int>().Update(escalation);
-
-            var userRepo = unitOfWork.GetRepository<User, int>();
-            var assignee = await userRepo.GetByIdAsync(assigneeId, cancellationToken);
 
             await CreateAssignmentHistoryAsync(escalation.ConversationId, assigneeId, "Escalation recommendation confirmed", cancellationToken);
             await WriteAuditLogAsync(tenantId, actorUserId, escalation.Id, previousOwnerId, assigneeId, "Confirm", "recommend", null);
@@ -115,6 +119,13 @@ namespace WaslX.Application.Features.Escalation.Services
             if (conversation is null)
                 return Result.Failure<EscalationRecommendation>(AppErrors.NotFound);
 
+            // assigneeId is client-supplied — verify it names a user in the caller's own tenant
+            // before writing it anywhere, or a cross-tenant assignment/enumeration is possible.
+            var userRepo = unitOfWork.GetRepository<User, int>();
+            var assignee = await userRepo.GetByIdAsync(assigneeId, cancellationToken);
+            if (assignee is null || assignee.TenantId != tenantId)
+                return Result.Failure<EscalationRecommendation>(AppErrors.InvalidAssignee);
+
             var previousOwnerId = conversation.AssignedUserId;
 
             conversation.AssignedUserId = assigneeId;
@@ -128,9 +139,6 @@ namespace WaslX.Application.Features.Escalation.Services
             escalation.OverrideReason = reason;
             escalation.ModeAtDecision = EscalationMode.Recommend;
             unitOfWork.GetRepository<Domain.Entities.Escalation, int>().Update(escalation);
-
-            var userRepo = unitOfWork.GetRepository<User, int>();
-            var assignee = await userRepo.GetByIdAsync(assigneeId, cancellationToken);
 
             await CreateAssignmentHistoryAsync(escalation.ConversationId, assigneeId, $"Override: {reason}", cancellationToken);
             await WriteAuditLogAsync(tenantId, actorUserId, escalation.Id, previousOwnerId, assigneeId, "Override", "recommend", reason);
@@ -181,31 +189,18 @@ namespace WaslX.Application.Features.Escalation.Services
                 return Result.Failure<EscalationRecommendation>(AppErrors.NoTarget);
             }
 
-            var settingsRepo = unitOfWork.GetRepository<TenantEscalationSettings, int>();
-            var settings = await settingsRepo.GetWithSpecAsync(new TenantEscalationSettingsSpec(tenantId));
-            var mode = settings?.Mode ?? EscalationMode.Recommend;
-
             var conversationRepo = unitOfWork.GetRepository<Conversation, int>();
             var conversation = await conversationRepo.GetByIdAsync(escalation.ConversationId, cancellationToken);
             if (conversation is null)
                 return Result.Failure<EscalationRecommendation>(AppErrors.NotFound);
 
             var previousOwnerId = conversation.AssignedUserId;
-            escalation.ModeAtDecision = mode;
+            // The "Recommend" mode (AI suggests, Manager/Admin confirms) has been removed — every
+            // escalation now transfers directly to the scored candidate and notifies the manager,
+            // instead of waiting on a human approval step. TenantEscalationSettings.Mode is no longer
+            // read here; ModeAtDecision is still recorded for historical/audit continuity.
+            escalation.ModeAtDecision = EscalationMode.AutoAssign;
 
-            if (mode == EscalationMode.Recommend)
-            {
-                escalation.Status = EscalationStatus.Recommended;
-                unitOfWork.GetRepository<Domain.Entities.Escalation, int>().Update(escalation);
-                await unitOfWork.CompleteAsync();
-
-                var result = BuildRecommendation(escalation, conversation, null, previousOwnerId);
-
-                logger.LogInformation("Escalation {EscalationId} set to recommended status, awaiting Manager/Admin confirm", escalationId);
-
-                return Result.Success(result);
-            }
-            else
             {
                 var assigneeId = escalation.SuggestedAssigneeId.Value;
 
@@ -570,9 +565,6 @@ namespace WaslX.Application.Features.Escalation.Services
         #endregion
 
         #region Specifications
-
-        private class TenantEscalationSettingsSpec(int tenantId)
-            : Domain.Specifications.Specification<TenantEscalationSettings, int>(s => s.TenantId == tenantId);
 
         private class ManagerAdminSpec : Specification<User, int>
         {

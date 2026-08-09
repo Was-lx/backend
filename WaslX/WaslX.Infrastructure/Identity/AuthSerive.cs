@@ -238,7 +238,9 @@ internal class AuthSerive(
         var code = await _userManager.GeneratePasswordResetTokenAsync(user);
         code = Base64UrlEncode(code);
 
-        _logger.LogInformation("Password reset code for {email}: {code}", user.Email, code);
+        // Code intentionally not logged — it's the live reset credential; SendResetPasswordEmail
+        // is the only channel it should ever travel through.
+        _logger.LogInformation("Password reset code generated for {email}", user.Email);
         SendResetPasswordEmail(user, code);
 
         return Result.Success();
@@ -340,7 +342,8 @@ internal class AuthSerive(
 
         var code = await _userManager.GeneratePasswordResetTokenAsync(user);
         code = Base64UrlEncode(code);
-        _logger.LogInformation("Set-password code for new user {email}: {code}", user.Email, code);
+        // Code intentionally not logged — see SendResetPasswordCodeAsync above for why.
+        _logger.LogInformation("Set-password code generated for new user {email}", user.Email);
         SendResetPasswordEmail(user, code);
 
         return Result.Success(user.Id);

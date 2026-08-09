@@ -4,6 +4,7 @@ using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using WaslX.Application.Abstractions.WhatsApp;
 using WaslX.Application.Features.WhatsApp.Webhook;
@@ -42,6 +43,7 @@ public class WhatsAppWebhookController(
 
     /// <summary>Receives webhook events. Returns 200 fast; heavy work runs in the background.</summary>
     [HttpPost]
+    [EnableRateLimiting("whatsapp-webhook")]
     public async Task<IActionResult> Receive(CancellationToken cancellationToken)
     {
         Request.EnableBuffering();

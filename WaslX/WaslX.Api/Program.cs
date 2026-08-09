@@ -1,12 +1,16 @@
 using Hangfire;
+using Hangfire.Dashboard;
+using Microsoft.Extensions.Options;
 using Serilog;
 using WaslX.Api;
 using WaslX.Application.Abstractions.Maintenance;
 using WaslX.Application.Abstractions.Rag;
+using WaslX.Api.Authorization;
 using WaslX.Api.Extensions;
 using WaslX.Api.Hubs;
 using WaslX.Application;
 using WaslX.Infrastructure;
+using WaslX.Infrastructure.Settings;
 using WaslX.Persistance;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -61,8 +65,16 @@ app.UseCors(WaslX.Api.DependencyInjection.CorsPolicy);
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
-app.UseHangfireDashboard(app.Configuration["Hangfire:DashboardPath"] ?? "/hangfire");
+// Cross-tenant job data (phone numbers, tenant/conversation ids) lives behind this dashboard, so it
+// must never be reachable without auth — gated by Basic Auth since it's a plain page load, not an
+// XHR call the SPA's JWT interceptor can attach to.
+var hangfireSettings = app.Services.GetRequiredService<IOptions<HangfireSettings>>();
+app.UseHangfireDashboard(app.Configuration["Hangfire:DashboardPath"] ?? "/hangfire", new DashboardOptions
+{
+    Authorization = [new HangfireDashboardAuthorizationFilter(hangfireSettings)]
+});
 
 // Recurring distribution-engine maintenance. Resolved from DI per run (IMaintenanceJobs is scoped).
 // Auto-resolve stale conversations every 30 minutes; reassign work off offline agents every 10 minutes.

@@ -1,8 +1,11 @@
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using WaslX.Api.Authorization;
 using WaslX.Api.HealthChecks;
@@ -113,7 +116,70 @@ namespace WaslX.Api
 
             services.AddHangfireServer(options => options.WorkerCount = hangfire.WorkerCount);
 
+            services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                // Network-level guard on the WhatsApp webhook — a burst of raw POSTs is rejected here
+                // before it ever reaches signature validation/DB work. One shared bucket (not
+                // per-caller) because all legitimate traffic here comes from Meta's own infra, not
+                // individual end users. Doesn't replace the per-phone-number throttle further downstream.
+                options.AddFixedWindowLimiter("whatsapp-webhook", limiter =>
+                {
+                    limiter.PermitLimit = 120;
+                    limiter.Window = TimeSpan.FromMinutes(1);
+                    limiter.QueueLimit = 0;
+                });
+
+                // Brute-force / credential-stuffing guard on the anonymous auth surface (login,
+                // register, signup, forgot/reset-password, ...). Partitioned per client IP — Identity's
+                // own account lockout (5 failed attempts/15 min) already protects a single account, but
+                // does nothing against many different accounts being tried from one source.
+                options.AddPolicy("auth", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: ClientKey(httpContext),
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    }));
+
+                // On-demand LLM/embedding calls (Knowledge Ask/Search) — partitioned per authenticated
+                // user. The per-tenant AI-usage quota gate (IAiUsageQuotaService) only guards the
+                // webhook-triggered classification/reply path; this manual "ask the KB" path has no
+                // cap of its own, so a spammed or scripted client could otherwise run up unbounded
+                // Groq/HuggingFace cost the same way the inbound-message flood used to.
+                options.AddPolicy("ai-costly", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: ClientKey(httpContext),
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 20,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    }));
+
+                // Generous baseline across every other endpoint, per user/IP — defense-in-depth against
+                // a runaway or compromised client hammering the API generally, without the specific
+                // per-endpoint limits above.
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: ClientKey(httpContext),
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 300,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0
+                        }));
+            });
+
             return services;
         }
+
+        // Authenticated requests are keyed by user id (so the limit follows the person, not whichever
+        // IP/proxy they're behind); anonymous requests fall back to the remote IP.
+        private static string ClientKey(HttpContext httpContext) =>
+            httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown";
     }
 }

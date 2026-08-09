@@ -11,6 +11,7 @@ namespace WaslX.Application.Features.Escalation.Models
         public decimal ResponseSpeedScore { get; init; }
         public decimal WorkloadScore { get; init; }
         public decimal TotalScore { get; init; }
+        public int ActiveChats { get; init; }
         public string Status { get; set; } = "Eligible"; // "Eligible", "Overloaded"
     }
 

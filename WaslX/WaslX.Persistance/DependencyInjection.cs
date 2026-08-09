@@ -166,6 +166,8 @@ namespace WaslX.Persistance
             // AI Agent
             services.AddScoped<WaslX.Application.Abstractions.AI.IAiAgentSettingsService, WaslX.Persistance.Services.AiAgent.AiAgentSettingsService>();
             services.AddScoped<WaslX.Application.Abstractions.AI.IAiAgentReplyService, WaslX.Persistance.Services.AiAgent.AiAgentReplyService>();
+            // Pre-call AI spend guard, shared by classification and AI-reply generation.
+            services.AddScoped<WaslX.Application.Abstractions.AI.IAiUsageQuotaService, WaslX.Persistance.Services.AiAgent.AiUsageQuotaService>();
 
             return services;
         }

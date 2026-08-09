@@ -94,20 +94,28 @@ namespace WaslX.Application.Features.Escalation.Services
                         ResponseSpeedScore = p.ResponseSpeedScore,
                         WorkloadScore = workloadScore,
                         TotalScore = totalScore,
+                        ActiveChats = activeChats,
                         Status = isEligible ? "Eligible" : "Overloaded"
                     });
                 }
 
-                // 6. Select the best Agent (only from eligible candidates)
+                // 6. Select the fairest Agent (only from eligible candidates): the one with the FEWEST
+                // active chats wins, so escalations rotate across the team instead of always piling onto
+                // whoever currently scores highest — a consistently top-performing agent would otherwise
+                // never stop receiving new work while teammates sit idle. TotalScore only breaks ties
+                // between agents carrying the same current load.
                 var availableCandidates = eligibleCandidateScores.Where(c => c.Status == "Eligible").ToList();
                 if (!availableCandidates.Any())
                 {
                     logger.LogWarning("No eligible agents after workload filtering for escalation {EscalationId}.", input.EscalationId);
                     return await RecordNoTargetAsync(input, escalationRepo, cancellationToken);
                 }
-                var bestCandidate = availableCandidates.OrderByDescending(c => c.TotalScore).First();
+                var bestCandidate = availableCandidates
+                    .OrderBy(c => c.ActiveChats)
+                    .ThenByDescending(c => c.TotalScore)
+                    .First();
 
-                var reason = $"Selected {bestCandidate.UserName} based on performance and workload.";
+                var reason = $"Selected {bestCandidate.UserName} to balance workload ({bestCandidate.ActiveChats} active chats), score {bestCandidate.TotalScore:0.00}.";
 
                 // 7. Store the recommendation
                 var result = new EscalationScoringResult
@@ -192,9 +200,12 @@ namespace WaslX.Application.Features.Escalation.Services
                 escalationRepo.Update(escalation);
 
                 var snapshotRepo = unitOfWork.GetRepository<EscalationCandidateSnapshot, int>();
+                // Same ordering as the selection above: fewest active chats first, score as tiebreaker —
+                // so RankingOrder in the saved snapshot actually matches who got picked and why.
                 var ranked = candidates
-                    .OrderByDescending(c => c.TotalScore)
-                    .ThenBy(c => c.Status == "Overloaded" ? 1 : 0)
+                    .OrderBy(c => c.Status == "Overloaded" ? 1 : 0)
+                    .ThenBy(c => c.ActiveChats)
+                    .ThenByDescending(c => c.TotalScore)
                     .ToList();
 
                 for (int i = 0; i < ranked.Count; i++)
@@ -209,7 +220,7 @@ namespace WaslX.Application.Features.Escalation.Services
                         PerformanceScore = c.PerformanceScore,
                         ResponseSpeedScore = c.ResponseSpeedScore,
                         WorkloadScore = c.WorkloadScore,
-                        ActiveChats = 0,
+                        ActiveChats = c.ActiveChats,
                         RankingOrder = i + 1,
                         Status = c.Status,
                         Reason = i == 0 ? reason : null,
