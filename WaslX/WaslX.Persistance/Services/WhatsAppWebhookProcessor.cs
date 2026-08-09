@@ -2,14 +2,15 @@ using System.Text.Json;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using WaslX.Application.Abstractions.AI;
 using WaslX.Application.Abstractions.Distribution;
 using WaslX.Application.Abstractions.Media;
 using WaslX.Application.Abstractions.Realtime;
 using WaslX.Application.Abstractions.WhatsApp;
+using WaslX.Application.Features.Classification;
 using WaslX.Domain.Entities;
 using WaslX.Domain.SharedEnums;
 using WaslX.Persistance.Data;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace WaslX.Persistance.Services;
 
@@ -21,8 +22,8 @@ internal sealed class WhatsAppWebhookProcessor(
     IInboxRealtimeNotifier notifier,
     IConversationWindowService windowService,
     IDistributionService distribution,
+    IInboundMessageThrottle throttle,
     Hangfire.IBackgroundJobClient backgroundJobs,
-    Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory,
     ILogger<WhatsAppWebhookProcessor> logger) : IWhatsAppWebhookProcessor
 {
     private static readonly HashSet<MessageType> MediaTypes =
@@ -199,73 +200,36 @@ internal sealed class WhatsAppWebhookProcessor(
             await notifier.ConversationChangedAsync(account.TenantId, new ConversationChangedPayload(
                 conversation.Id, conversation.Status.ToString(), conversation.AssignedUserId, conversation.LastMessageAt), cancellationToken);
 
-        // US-4.8: Queue classification and AI agent parallel execution (fire-and-forget inside the background job)
+        // US-4.8: Queue classification + AI agent reply as Hangfire jobs (bounded by the server's
+        // configured WorkerCount) instead of raw unthrottled Task.Run — a burst of inbound messages
+        // can no longer spin up unbounded concurrent LLM/embedding calls against our own process or
+        // the AI providers' rate limits. Gated first by the per-phone-number throttle: message storage
+        // above is never skipped, only this downstream AI-costing work.
         if (inbound.MessageType == MessageType.Text)
         {
             var tenantId = account.TenantId;
             var convId = conversation.Id;
             var msgId = inbound.Id;
-            var wabaId = conversation.WhatsAppAccountId;
-            var aiMode = conversation.AiMode;
 
-            _ = Task.Run(async () =>
+            if (!throttle.TryAcquire(from!))
             {
-                var t1 = Task.Run(async () =>
+                logger.LogWarning(
+                    "Inbound message throttle: {From} exceeded the per-minute limit — skipping classification/AI reply for message {MsgId}",
+                    from, msgId);
+            }
+            else
+            {
+                backgroundJobs.Enqueue<IClassificationOrchestrator>(
+                    c => c.ProcessClassificationAsync(tenantId, convId, msgId, CancellationToken.None));
+
+                // AiAgentReplyService re-derives and checks tenant/number Enabled + AutoReplyEnabled
+                // itself; AiMode is the one gate not already inside it, so it's checked here.
+                if (conversation.AiMode == AiConversationMode.Active)
                 {
-                    using var classScope = serviceScopeFactory.CreateScope();
-                    var classifier = classScope.ServiceProvider.GetRequiredService<WaslX.Application.Features.Classification.IClassificationOrchestrator>();
-                    var classLogger = classScope.ServiceProvider.GetRequiredService<ILogger<WhatsAppWebhookProcessor>>();
-                    try
-                    {
-                        await classifier.ProcessClassificationAsync(tenantId, convId, msgId, CancellationToken.None);
-                    }
-                    catch (Exception ex)
-                    {
-                        classLogger.LogError(ex, "Classification failed for message {MsgId}", msgId);
-                    }
-                });
-
-                var t2 = Task.Run(async () =>
-                {
-                    using var aiScope = serviceScopeFactory.CreateScope();
-                    var bgDb = aiScope.ServiceProvider.GetRequiredService<WaslX.Persistance.Data.ApplicationDbContext>();
-                    var aiAgent = aiScope.ServiceProvider.GetRequiredService<WaslX.Application.Abstractions.AI.IAiAgentReplyService>();
-                    var aiLogger = aiScope.ServiceProvider.GetRequiredService<ILogger<WhatsAppWebhookProcessor>>();
-
-                    try
-                    {
-                        var numberSettings = await bgDb.AiAgentNumberSettings
-                            .AsNoTracking()
-                            .FirstOrDefaultAsync(n => n.WhatsAppAccountId == wabaId);
-
-                        bool numberAiEnabled;
-                        if (numberSettings is not null)
-                        {
-                            numberAiEnabled = numberSettings.Enabled;
-                        }
-                        else
-                        {
-                            var tenantAiSettings = await bgDb.TenantAiAgentSettings
-                                .AsNoTracking()
-                                .FirstOrDefaultAsync(s => s.TenantId == tenantId);
-                            numberAiEnabled = tenantAiSettings?.Enabled ?? false;
-                        }
-
-                        aiLogger.LogInformation("WhatsAppWebhookProcessor: Routing AI for Conv {ConvId}. numberAiEnabled: {AiEnabled}, AiMode: {AiMode}", convId, numberAiEnabled, aiMode);
-
-                        if (numberAiEnabled && aiMode == WaslX.Domain.SharedEnums.AiConversationMode.Active)
-                        {
-                            await aiAgent.ReplyAsync(tenantId, convId, msgId, CancellationToken.None);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        aiLogger.LogError(ex, "AI Agent routing/reply failed for message {MsgId}", msgId);
-                    }
-                });
-
-                await Task.WhenAll(t1, t2);
-            });
+                    backgroundJobs.Enqueue<IAiAgentReplyService>(
+                        a => a.ReplyAsync(tenantId, convId, msgId, CancellationToken.None));
+                }
+            }
         }
 
         // Auto-distribution (Sprint 3, Phase B): route a brand-new, still-unassigned conversation to an

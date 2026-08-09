@@ -1,8 +1,10 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using WaslX.Api.Authorization;
 using WaslX.Api.HealthChecks;
@@ -112,6 +114,21 @@ namespace WaslX.Api
                 .UseSqlServerStorage(connectionString));
 
             services.AddHangfireServer(options => options.WorkerCount = hangfire.WorkerCount);
+
+            // Network-level guard on the WhatsApp webhook — a burst of raw POSTs is rejected here
+            // before it ever reaches signature validation/DB work. Doesn't replace the per-phone-number
+            // throttle downstream (Meta's own relayed traffic is legitimate and signed), but bounds
+            // brute-force/flood traffic hitting the endpoint directly.
+            services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.AddFixedWindowLimiter("whatsapp-webhook", limiter =>
+                {
+                    limiter.PermitLimit = 120;
+                    limiter.Window = TimeSpan.FromMinutes(1);
+                    limiter.QueueLimit = 0;
+                });
+            });
 
             return services;
         }

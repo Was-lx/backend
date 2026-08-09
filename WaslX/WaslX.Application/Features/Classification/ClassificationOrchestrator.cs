@@ -25,12 +25,21 @@ public class ClassificationOrchestrator(
     IInboxRealtimeNotifier realtimeNotifier,
     IConversationEscalationService escalationService,
     IKnowledgeRetriever knowledgeRetriever,
+    IAiUsageQuotaService usageQuota,
     ILogger<ClassificationOrchestrator> logger) : IClassificationOrchestrator
 {
     public async Task ProcessClassificationAsync(int tenantId, int conversationId, int messageId, CancellationToken cancellationToken = default)
     {
         try
         {
+            // Pre-call spend guard: skip classification entirely once the tenant's monthly AI quota
+            // is exhausted, instead of billing an unbounded number of LLM calls regardless of plan.
+            if (!await usageQuota.IsWithinQuotaAsync(tenantId, cancellationToken))
+            {
+                logger.LogWarning("Classification skipped for tenant {TenantId}: monthly AI quota exceeded", tenantId);
+                return;
+            }
+
             var msgRepo = unitOfWork.GetRepository<Message, int>();
             var classRepo = unitOfWork.GetRepository<MessageClassification, int>();
 

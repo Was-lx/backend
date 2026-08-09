@@ -19,6 +19,7 @@ public class AiAgentReplyService(
     ILLMProvider llmProvider,
     IWhatsAppService whatsAppService,
     IInboxRealtimeNotifier notifier,
+    IAiUsageQuotaService usageQuota,
     ILogger<AiAgentReplyService> logger) : IAiAgentReplyService
 {
     public async Task ReplyAsync(int tenantId, int conversationId, int messageId, CancellationToken cancellationToken = default)
@@ -98,6 +99,17 @@ public class AiAgentReplyService(
                 logger.LogWarning(
                     "AiAgentReplyService: Possible prompt injection pattern detected in message {MsgId}, conversation {ConvId} — escalating without calling the LLM",
                     messageId, conversationId);
+                await EscalateToHumanAsync(tenantId, conversationId, conversation, customer, cancellationToken);
+                return;
+            }
+
+            // Pre-call spend guard: once the tenant's monthly AI quota is exhausted, stop auto-replying
+            // and hand off to a human instead of billing an unbounded number of LLM calls — this is the
+            // exact gap an inbound-message flood exploits when nothing stands between "message arrives"
+            // and "we pay for a generation."
+            if (!await usageQuota.IsWithinQuotaAsync(tenantId, cancellationToken))
+            {
+                logger.LogWarning("AiAgentReplyService: Monthly AI quota exceeded for tenant {TenantId} — escalating instead of generating", tenantId);
                 await EscalateToHumanAsync(tenantId, conversationId, conversation, customer, cancellationToken);
                 return;
             }

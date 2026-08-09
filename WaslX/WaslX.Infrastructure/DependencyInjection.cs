@@ -52,6 +52,10 @@ namespace WaslX.Infrastructure
             // Meta WhatsApp Cloud API client (typed HttpClient via IHttpClientFactory).
             services.AddHttpClient<IMetaGraphApiService, MetaGraphApiService>();
 
+            // Per-phone-number spam throttle for inbound messages — singleton so its counters persist
+            // across requests on this instance.
+            services.AddSingleton<IInboundMessageThrottle, InboundMessageThrottle>();
+
             services.AddScoped<IMediaStorageService, CloudinaryMediaStorageService>();
 
             services.AddScoped<RuleBasedMessageClassifier>();
